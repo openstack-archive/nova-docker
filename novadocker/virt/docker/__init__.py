@@ -17,6 +17,6 @@
 :mod:`docker` -- Nova support for Docker Hypervisor to run Linux containers
 ===========================================================================
 """
-from nova.virt.docker import driver
+from novadocker.virt.docker import driver
 
 DockerDriver = driver.DockerDriver

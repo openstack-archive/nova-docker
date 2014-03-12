@@ -34,10 +34,10 @@ from nova.openstack.common import jsonutils
 from nova.openstack.common import log
 from nova.openstack.common import units
 from nova import utils
-import nova.virt.docker.client
-from nova.virt.docker import hostinfo
-from nova.virt.docker import network
-from nova.virt import driver
+import novadocker.virt.docker.client as docker_client
+from novadocker.virt.docker import hostinfo
+from novadocker.virt.docker import network
+from novadocker.virt import driver
 
 
 docker_opts = [
@@ -66,7 +66,7 @@ class DockerDriver(driver.ComputeDriver):
     @property
     def docker(self):
         if self._docker is None:
-            self._docker = nova.virt.docker.client.DockerHTTPClient()
+            self._docker = docker_client.DockerHTTPClient()
         return self._docker
 
     def init_host(self, host):
