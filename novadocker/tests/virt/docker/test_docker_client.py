@@ -18,8 +18,8 @@ import uuid
 import mox
 
 from nova import test
-import nova.virt.docker.client
 from novadocker.openstack.common import jsonutils
+import novadocker.virt.docker.client as docker_client
 
 
 class FakeResponse(object):
@@ -48,7 +48,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         containers = client.list_containers()
         self.assertEqual([], containers)
 
@@ -88,7 +88,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         container_id = client.create_container({}, expected_uuid)
         self.assertEqual('XXX', container_id)
 
@@ -126,7 +126,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         args = {
             'Hostname': 'marco',
             'Memory': 512,
@@ -152,7 +152,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         container_id = client.create_container({}, expected_uuid)
         self.assertIsNone(container_id)
 
@@ -171,7 +171,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         container_id = client.create_container({}, expected_uuid)
         self.assertIsNone(container_id)
 
@@ -189,7 +189,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         self.assertEqual(True, client.start_container('XXX'))
 
         self.mox.VerifyAll()
@@ -205,7 +205,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         self.assertEqual(False, client.start_container('XXX'))
 
         self.mox.VerifyAll()
@@ -221,7 +221,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         image = client.inspect_image('XXX')
         self.assertEqual({'name': 'XXX'}, image)
 
@@ -237,7 +237,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         image = client.inspect_image('XXX')
         self.assertIsNone(image)
 
@@ -254,7 +254,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         container = client.inspect_container('XXX')
         self.assertEqual({'id': 'XXX'}, container)
 
@@ -270,7 +270,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         container = client.inspect_container('XXX')
         self.assertIsNone(container)
 
@@ -287,7 +287,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         self.assertEqual(True, client.stop_container('XXX'))
 
         self.mox.VerifyAll()
@@ -303,7 +303,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         self.assertEqual(True, client.kill_container('XXX'))
 
         self.mox.VerifyAll()
@@ -318,7 +318,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         self.assertEqual(False, client.stop_container('XXX'))
 
         self.mox.VerifyAll()
@@ -333,7 +333,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         self.assertEqual(False, client.kill_container('XXX'))
 
         self.mox.VerifyAll()
@@ -349,7 +349,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         self.assertEqual(True, client.destroy_container('XXX'))
 
         self.mox.VerifyAll()
@@ -364,7 +364,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         self.assertEqual(False, client.destroy_container('XXX'))
 
         self.mox.VerifyAll()
@@ -380,7 +380,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         self.assertEqual(True, client.pull_repository('ping'))
 
         self.mox.VerifyAll()
@@ -397,7 +397,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         self.assertEqual(True, client.pull_repository('ping:pong'))
 
         self.mox.VerifyAll()
@@ -413,7 +413,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         self.assertEqual(False, client.pull_repository('ping'))
 
         self.mox.VerifyAll()
@@ -432,7 +432,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         self.assertEqual(True, client.push_repository('ping'))
 
         self.mox.VerifyAll()
@@ -451,7 +451,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         self.assertEqual(False, client.push_repository('ping'))
 
         self.mox.VerifyAll()
@@ -467,7 +467,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         self.assertEqual(True, client.commit_container('XXX', 'ping'))
 
         self.mox.VerifyAll()
@@ -483,7 +483,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         self.assertEqual(False, client.commit_container('XXX', 'ping'))
 
         self.mox.VerifyAll()
@@ -500,7 +500,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         logs = client.get_container_logs('XXX')
         self.assertEqual('ping pong', logs)
 
@@ -517,7 +517,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        client = nova.virt.docker.client.DockerHTTPClient(mock_conn)
+        client = docker_client.DockerHTTPClient(mock_conn)
         logs = client.get_container_logs('XXX')
         self.assertIsNone(logs)
 

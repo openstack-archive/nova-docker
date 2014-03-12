@@ -16,8 +16,8 @@
 import time
 import uuid
 
-import nova.virt.docker.client
 from novadocker.openstack.common import timeutils
+import novadocker.virt.docker.client as docker_client
 
 
 class MockClient(object):
@@ -31,7 +31,7 @@ class MockClient(object):
     def _is_daemon_running(self):
         return True
 
-    @nova.virt.docker.client.filter_data
+    @docker_client.filter_data
     def list_containers(self, _all=True):
         containers = []
         for container_id in self._containers.iterkeys():
@@ -81,11 +81,11 @@ class MockClient(object):
         self._containers[container_id]['running'] = True
         return True
 
-    @nova.virt.docker.client.filter_data
+    @docker_client.filter_data
     def inspect_image(self, image_name):
         return {'container_config': {'Cmd': None}}
 
-    @nova.virt.docker.client.filter_data
+    @docker_client.filter_data
     def inspect_container(self, container_id):
         if container_id not in self._containers:
             return

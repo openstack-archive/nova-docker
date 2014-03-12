@@ -18,7 +18,7 @@ import posix
 import mock
 
 from nova import test
-from nova.virt.docker import hostinfo
+from novadocker.virt.docker import hostinfo
 
 
 class HostInfoTestCase(test.NoDBTestCase):
