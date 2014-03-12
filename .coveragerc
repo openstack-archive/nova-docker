@@ -1,0 +1,7 @@
+[run]
+branch = True
+source = novadocker
+omit = novadocker/tests/*,novadocker/openstack/*
+
+[report]
+ignore-errors = True
