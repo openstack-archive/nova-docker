@@ -20,14 +20,14 @@ import mock
 
 from nova import context
 from nova import exception
-from nova.openstack.common import jsonutils
-from nova.openstack.common import units
 from nova import test
 from nova.tests import utils
 import nova.tests.virt.docker.mock_client
 from nova.tests.virt.test_virt_drivers import _VirtDriverTestCase
 from nova.virt.docker import hostinfo
 from nova.virt.docker import network
+from novadocker.openstack.common import jsonutils
+from novadocker.openstack.common import units
 
 
 class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):

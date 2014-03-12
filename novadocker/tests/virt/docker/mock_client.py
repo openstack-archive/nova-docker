@@ -16,8 +16,8 @@
 import time
 import uuid
 
-from nova.openstack.common import timeutils
 import nova.virt.docker.client
+from novadocker.openstack.common import timeutils
 
 
 class MockClient(object):

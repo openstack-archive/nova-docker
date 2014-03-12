@@ -17,9 +17,9 @@ import uuid
 
 import mox
 
-from nova.openstack.common import jsonutils
 from nova import test
 import nova.virt.docker.client
+from novadocker.openstack.common import jsonutils
 
 
 class FakeResponse(object):
