@@ -1,0 +1,12 @@
+--- stackrc 2014-03-17 16:49:04.775293874 +0000
++++ stackrc-docker  2014-03-17 16:50:23.397903730 +0000
+@@ -317,6 +317,9 @@
+ # which may be set in ``localrc``.  Also allow ``DEFAULT_IMAGE_NAME`` and
+ # ``IMAGE_URLS`` to be set directly in ``localrc``.
+ case "$VIRT_DRIVER" in
++    docker)
++        DEFAULT_IMAGE_NAME=${DEFAULT_IMAGE_NAME:-cirros}
++        IMAGE_URLS=${IMAGE_URLS:-};;
+     openvz)
+         DEFAULT_IMAGE_NAME=${DEFAULT_IMAGE_NAME:-ubuntu-12.04-x86_64}
+         IMAGE_URLS=${IMAGE_URLS:-"http://download.openvz.org/template/precreated/ubuntu-12.04-x86_64.tar.gz"};;
