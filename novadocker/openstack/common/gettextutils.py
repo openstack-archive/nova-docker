@@ -248,10 +248,13 @@ class Message(six.text_type):
             params = (other,)
         elif isinstance(other, dict):
             # Merge the dictionaries
+            # Copy each item in case one does not support deep copy.
             params = {}
             if isinstance(self.params, dict):
-                params.update(self._copy_param(self.params))
-            params.update(self._copy_param(other))
+                for key, val in self.params.items():
+                    params[key] = self._copy_param(val)
+            for key, val in other.items():
+                params[key] = self._copy_param(val)
         else:
             params = self._copy_param(other)
         return params
@@ -259,7 +262,7 @@ class Message(six.text_type):
     def _copy_param(self, param):
         try:
             return copy.deepcopy(param)
-        except TypeError:
+        except Exception:
             # Fallback to casting to unicode this will handle the
             # python code-like objects that can't be deep-copied
             return six.text_type(param)
