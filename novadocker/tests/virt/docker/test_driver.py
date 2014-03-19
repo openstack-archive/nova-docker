@@ -22,10 +22,11 @@ from nova import context
 from nova import exception
 from nova import test
 from nova.tests import utils
-import nova.tests.virt.docker.mock_client
 from nova.tests.virt.test_virt_drivers import _VirtDriverTestCase
+
 from novadocker.openstack.common import jsonutils
 from novadocker.openstack.common import units
+import novadocker.tests.virt.docker.mock_client
 from novadocker.virt.docker import hostinfo
 from novadocker.virt.docker import network
 
