@@ -24,8 +24,8 @@ from nova.openstack.common import jsonutils
 from nova.openstack.common import units
 from nova import test
 from nova.tests import utils
-import nova.tests.virt.docker.mock_client
 from nova.tests.virt.test_virt_drivers import _VirtDriverTestCase
+from novadocker.tests.virt.docker import mock_client
 from novadocker.virt.docker import hostinfo
 from novadocker.virt.docker import network
 
@@ -37,7 +37,7 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
     def setUp(self):
         super(DockerDriverTestCase, self).setUp()
 
-        self.mock_client = nova.tests.virt.docker.mock_client.MockClient()
+        self.mock_client = mock_client.MockClient()
         self.stubs.Set(nova.virt.docker.driver.DockerDriver, 'docker',
                        self.mock_client)
 
