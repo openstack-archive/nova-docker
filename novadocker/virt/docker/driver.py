@@ -32,12 +32,12 @@ from nova.image import glance
 from nova.openstack.common.gettextutils import _
 from nova.openstack.common import jsonutils
 from nova.openstack.common import log
-from nova.openstack.common import units
+from novadocker.openstack.common import units
 from nova import utils
 import novadocker.virt.docker.client as docker_client
 from novadocker.virt.docker import hostinfo
 from novadocker.virt.docker import network
-from novadocker.virt import driver
+from nova.virt import driver
 
 
 docker_opts = [
@@ -310,8 +310,8 @@ class DockerDriver(driver.ComputeDriver):
             raise exception.InstanceDeployFailure(msg.format(e),
                                                   instance_id=instance['name'])
 
-    def destroy(self, context, instance, network_info, block_device_info=None,
-            destroy_disks=True):
+    def destroy(self, instance, network_info, block_device_info=None,
+            destroy_disks=True, context=None):
         container_id = self._find_container_by_name(instance['name']).get('id')
         if not container_id:
             return
