@@ -22,22 +22,24 @@ import random
 import socket
 import time
 
+
 from oslo.config import cfg
 
+import novadocker.virt.docker.client as docker_client
+
+from nova import exception
+from nova import utils
 from nova.compute import flavors
 from nova.compute import power_state
 from nova.compute import task_states
-from nova import exception
 from nova.image import glance
+from nova.virt import driver
 from nova.openstack.common.gettextutils import _
 from nova.openstack.common import jsonutils
 from nova.openstack.common import log
 from nova.openstack.common import units
-from nova import utils
-import novadocker.virt.docker.client as docker_client
 from novadocker.virt.docker import hostinfo
 from novadocker.virt.docker import network
-from novadocker.virt import driver
 
 
 docker_opts = [
