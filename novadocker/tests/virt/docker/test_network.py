@@ -21,7 +21,7 @@ from nova import utils
 
 from nova.tests import utils as test_utils
 
-from novadocker.openstack.common import processutils
+from nova.openstack.common import processutils
 from novadocker.virt.docker import network
 
 import mock

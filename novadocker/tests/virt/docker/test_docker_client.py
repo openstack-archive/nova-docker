@@ -18,7 +18,7 @@ import uuid
 import mox
 
 from nova import test
-from novadocker.openstack.common import jsonutils
+from nova.openstack.common import jsonutils
 import novadocker.virt.docker.client as docker_client
 
 
