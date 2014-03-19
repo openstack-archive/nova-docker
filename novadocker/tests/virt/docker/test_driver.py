@@ -24,34 +24,35 @@ from nova.openstack.common import jsonutils
 from nova.openstack.common import units
 from nova import test
 from nova.tests import utils
-import nova.tests.virt.docker.mock_client
 from nova.tests.virt.test_virt_drivers import _VirtDriverTestCase
+from novadocker.tests.virt.docker import mock_client
+import novadocker.virt.docker
 from novadocker.virt.docker import hostinfo
 from novadocker.virt.docker import network
 
 
 class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
 
-    driver_module = 'nova.virt.docker.DockerDriver'
+    driver_module = 'novadocker.virt.docker.DockerDriver'
 
     def setUp(self):
         super(DockerDriverTestCase, self).setUp()
 
-        self.mock_client = nova.tests.virt.docker.mock_client.MockClient()
-        self.stubs.Set(nova.virt.docker.driver.DockerDriver, 'docker',
+        self.mock_client = mock_client.MockClient()
+        self.stubs.Set(novadocker.virt.docker.driver.DockerDriver, 'docker',
                        self.mock_client)
 
         def fake_setup_network(self, instance, network_info):
             return
 
-        self.stubs.Set(nova.virt.docker.driver.DockerDriver,
+        self.stubs.Set(novadocker.virt.docker.driver.DockerDriver,
                        '_setup_network',
                        fake_setup_network)
 
         def fake_get_registry_port(self):
             return 5042
 
-        self.stubs.Set(nova.virt.docker.driver.DockerDriver,
+        self.stubs.Set(novadocker.virt.docker.driver.DockerDriver,
                        '_get_registry_port',
                        fake_get_registry_port)
 
@@ -183,7 +184,7 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         container_info = self.connection.docker.inspect_container(container_id)
         self.assertEqual(vcpus * 1024, container_info['Config']['CpuShares'])
 
-    @mock.patch('nova.virt.docker.driver.DockerDriver._setup_network',
+    @mock.patch('novadocker.virt.docker.driver.DockerDriver._setup_network',
                 side_effect=Exception)
     def test_create_container_net_setup_fails(self, mock_setup_network):
         self.assertRaises(exception.InstanceDeployFailure,
@@ -200,7 +201,7 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
                           image_info)
 
     @mock.patch.object(network, 'teardown_network')
-    @mock.patch.object(nova.virt.docker.driver.DockerDriver,
+    @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
                 '_find_container_by_name', return_value={'id': 'fake_id'})
     def test_destroy_container(self, byname_mock, teardown_mock):
         instance = utils.get_test_instance()
