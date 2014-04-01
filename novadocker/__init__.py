@@ -16,4 +16,4 @@ import pbr.version
 
 
 __version__ = pbr.version.VersionInfo(
-    'novadocker').version_string()
+    'nova-docker').version_string()
