@@ -53,7 +53,7 @@ class HostInfoTestCase(test.NoDBTestCase):
         self.assertEqual(usage['used'], 730849280)
         self.assertEqual(usage['free'], 312385536)
 
-    @mock.patch('nova.virt.docker.hostinfo.get_mounts')
+    @mock.patch('novadocker.virt.docker.hostinfo.get_mounts')
     def test_find_cgroup_devices_path_centos(self, mock):
         mock.return_value = [
             'none /sys/fs/cgroup cgroup rw,relatime,perf_event,'
@@ -62,7 +62,7 @@ class HostInfoTestCase(test.NoDBTestCase):
         path = hostinfo.get_cgroup_devices_path()
         self.assertEqual('/sys/fs/cgroup', path)
 
-    @mock.patch('nova.virt.docker.hostinfo.get_mounts')
+    @mock.patch('novadocker.virt.docker.hostinfo.get_mounts')
     def test_find_cgroup_devices_path_ubuntu(self, mock):
         mock.return_value = ['cgroup /cgroup tmpfs rw,relatime,mode=755 0 0',
                 'cgroup /cgroup/devices cgroup rw,relatime,devices,' +

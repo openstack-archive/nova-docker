@@ -253,7 +253,7 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         self.connection.spawn(self.context, instance_href, image_info,
                               'fake_files', 'fake_password')
 
-        with mock.patch('nova.tests.virt.docker.mock_client.'
+        with mock.patch('novadocker.tests.virt.docker.mock_client.'
                         'MockClient.inspect_container',
                         return_value={}):
             instances = self.connection.list_instances()
