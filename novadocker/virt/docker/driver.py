@@ -74,6 +74,8 @@ class DockerDriver(driver.ComputeDriver):
             raise exception.NovaException(_('Docker daemon is not running or '
                 'is not reachable (check the rights on /var/run/docker.sock)'))
 
+        self._registry_port = self._get_registry_port()
+
     def _is_daemon_running(self):
         try:
             self.docker.list_containers()
@@ -257,9 +259,8 @@ class DockerDriver(driver.ComputeDriver):
             msg = _('Image container format not supported ({0})')
             raise exception.InstanceDeployFailure(msg.format(fmt),
                 instance_id=instance['name'])
-        registry_port = self._get_registry_port()
         return '{0}:{1}/{2}'.format(CONF.my_ip,
-                                    registry_port,
+                                    self._registry_port,
                                     image['name'])
 
     def _get_default_cmd(self, image_name):
@@ -377,11 +378,10 @@ class DockerDriver(driver.ComputeDriver):
         (image_service, image_id) = glance.get_remote_image_service(
             context, image_href)
         image = image_service.show(context, image_id)
-        registry_port = self._get_registry_port()
         name = image['name']
         default_tag = (':' not in name)
         name = '{0}:{1}/{2}'.format(CONF.my_ip,
-                                    registry_port,
+                                    self._registry_port,
                                     name)
         commit_name = name if not default_tag else name + ':latest'
         self.docker.commit_container(container_id, commit_name)
