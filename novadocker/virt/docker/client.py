@@ -174,7 +174,7 @@ class DockerHTTPClient(object):
             'GET',
             '/v1.7/containers/{0}/json'.format(container_id))
         if resp.code != 200:
-            return
+            return {}
         return resp.to_json()
 
     def stop_container(self, container_id):

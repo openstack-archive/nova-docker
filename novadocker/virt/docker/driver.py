@@ -89,6 +89,8 @@ class DockerDriver(driver.ComputeDriver):
         res = []
         for container in self.docker.list_containers():
             info = self.docker.inspect_container(container['id'])
+            if not info:
+                continue
             if inspect:
                 res.append(info)
             else:
@@ -353,7 +355,7 @@ class DockerDriver(driver.ComputeDriver):
         registry = None
         for container in self.docker.list_containers(_all=False):
             container = self.docker.inspect_container(container['id'])
-            if 'docker-registry' in container['Path']:
+            if 'docker-registry' in container.get('Path'):
                 registry = container
                 break
         if not registry:

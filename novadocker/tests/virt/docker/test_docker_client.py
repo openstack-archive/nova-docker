@@ -265,14 +265,15 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         mock_conn.request('GET', '/v1.7/containers/XXX/json',
                           headers={'Content-Type': 'application/json'})
-        response = FakeResponse(404)
+        response = FakeResponse(404, data='inspect: No such container: XXX',
+                                headers={'Content-Type': 'text/plain'})
         mock_conn.getresponse().AndReturn(response)
 
         self.mox.ReplayAll()
 
         client = docker_client.DockerHTTPClient(mock_conn)
         container = client.inspect_container('XXX')
-        self.assertIsNone(container)
+        self.assertEqual({}, container)
 
         self.mox.VerifyAll()
 

@@ -218,3 +218,34 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         instance = utils.get_test_instance(obj=False)
         limit = self.connection._get_memory_limit_bytes(instance)
         self.assertEqual(2048 * units.Mi, limit)
+
+    def test_list_instances(self):
+        instance_href = utils.get_test_instance()
+        image_info = utils.get_test_image_info(None, instance_href)
+        image_info['disk_format'] = 'raw'
+        image_info['container_format'] = 'docker'
+        self.connection.spawn(self.context, instance_href, image_info,
+                              'fake_files', 'fake_password')
+
+        instances = self.connection.list_instances()
+        self.assertIn(instance_href.name, instances)
+
+    def test_list_instances_none(self):
+        instances = self.connection.list_instances()
+        self.assertIsInstance(instances, list)
+        self.assertFalse(instances)
+
+    def test_list_instances_no_inspect_race(self):
+        """Assures containers that cannot be inspected are not listed."""
+        instance_href = utils.get_test_instance()
+        image_info = utils.get_test_image_info(None, instance_href)
+        image_info['disk_format'] = 'raw'
+        image_info['container_format'] = 'docker'
+        self.connection.spawn(self.context, instance_href, image_info,
+                              'fake_files', 'fake_password')
+
+        with mock.patch('nova.tests.virt.docker.mock_client.'
+                        'MockClient.inspect_container',
+                        return_value={}):
+            instances = self.connection.list_instances()
+            self.assertFalse(instances)
