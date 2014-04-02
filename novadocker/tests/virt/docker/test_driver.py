@@ -259,6 +259,14 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
             instances = self.connection.list_instances()
             self.assertFalse(instances)
 
+    def test_find_container_pid(self):
+        driver = novadocker.virt.docker.driver.DockerDriver(None)
+        with mock.patch.object(driver.docker,
+                               "inspect_container") as inspect_container:
+            inspect_container.return_value = {'State': {'Pid': '12345'}}
+            pid = driver._find_container_pid("fake_container_id")
+            self.assertEqual(pid, '12345')
+
     @mock.patch.object(novadocker.tests.virt.docker.mock_client.MockClient,
                 'push_repository')
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
