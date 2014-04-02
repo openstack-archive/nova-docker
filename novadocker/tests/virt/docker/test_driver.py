@@ -218,3 +218,10 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         instance = utils.get_test_instance(obj=False)
         limit = self.connection._get_memory_limit_bytes(instance)
         self.assertEqual(2048 * units.Mi, limit)
+
+    def test_get_host_uptime_returns_exec_result(self):
+        result = '4294967296'
+        with mock.patch('nova.utils.execute',
+                        return_value=(result, None)):
+            uptime = self.connection.get_host_uptime(None)
+            self.assertEqual(result, uptime)
