@@ -34,10 +34,10 @@ from nova.openstack.common import jsonutils
 from nova.openstack.common import log
 from nova.openstack.common import units
 from nova import utils
-import novadocker.virt.docker.client as docker_client
+from nova.virt import driver
+from novadocker.virt.docker import client as docker_client
 from novadocker.virt.docker import hostinfo
 from novadocker.virt.docker import network
-from novadocker.virt import driver
 
 
 docker_opts = [
