@@ -171,9 +171,6 @@ class DockerDriver(driver.ComputeDriver):
         return stats
 
     def _find_container_pid(self, container_id):
-        cgroup_path = hostinfo.get_cgroup_devices_path()
-        lxc_path = os.path.join(cgroup_path, 'lxc')
-        tasks_path = os.path.join(lxc_path, container_id, 'tasks')
         n = 0
         while True:
             # NOTE(samalba): We wait for the process to be spawned inside the
@@ -182,13 +179,12 @@ class DockerDriver(driver.ComputeDriver):
             # machine, we allow 10 seconds as a hard limit.
             if n > 20:
                 return
-            try:
-                with open(tasks_path) as f:
-                    pids = f.readlines()
-                    if pids:
-                        return int(pids[0].strip())
-            except IOError:
-                pass
+            info = self.docker.inspect_container(container_id)
+            if info:
+                pid = info['State']['Pid']
+                # Pid is equal to zero if it isn't assigned yet
+                if pid:
+                    return pid
             time.sleep(0.5)
             n += 1
 
