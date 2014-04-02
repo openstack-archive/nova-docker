@@ -26,6 +26,7 @@ from nova import test
 from nova.tests import utils
 from nova.tests.virt.test_virt_drivers import _VirtDriverTestCase
 from novadocker.tests.virt.docker import mock_client
+from novadocker.tests.virt.docker import stubs
 import novadocker.virt.docker
 from novadocker.virt.docker import hostinfo
 from novadocker.virt.docker import network
@@ -55,6 +56,9 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         self.stubs.Set(novadocker.virt.docker.driver.DockerDriver,
                        '_get_registry_port',
                        fake_get_registry_port)
+
+        self.stubs.Set(nova.virt.docker.hostinfo,
+                       'get_meminfo', stubs.get_meminfo)
 
         # Note: using mock.object.path on class throws
         # errors in test_virt_drivers
