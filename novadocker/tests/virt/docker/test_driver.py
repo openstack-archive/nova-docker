@@ -328,3 +328,10 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         # That the lower-case snapshot name matches the name pushed
         image_name = repo.split("/")[1]
         self.assertEqual(image_info['name'].lower(), image_name)
+
+    def test_get_host_uptime_returns_exec_result(self):
+        result = '4294967296'
+        with mock.patch('nova.utils.execute',
+                        return_value=(result, None)):
+            uptime = self.connection.get_host_uptime(None)
+            self.assertEqual(result, uptime)
