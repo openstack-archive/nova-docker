@@ -258,7 +258,7 @@ class DockerDriver(driver.ComputeDriver):
         registry_port = self._get_registry_port()
         return '{0}:{1}/{2}'.format(CONF.my_ip,
                                     registry_port,
-                                    image['name'])
+                                    image['name'].lower())
 
     def _get_default_cmd(self, image_name):
         default_cmd = ['sh']
@@ -376,7 +376,7 @@ class DockerDriver(driver.ComputeDriver):
             context, image_href)
         image = image_service.show(context, image_id)
         registry_port = self._get_registry_port()
-        name = image['name']
+        name = image['name'].lower()
         default_tag = (':' not in name)
         name = '{0}:{1}/{2}'.format(CONF.my_ip,
                                     registry_port,

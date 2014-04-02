@@ -18,11 +18,13 @@ import socket
 
 import mock
 
+from nova.compute import task_states
 from nova import context
 from nova import exception
 from nova.openstack.common import jsonutils
 from nova.openstack.common import units
 from nova import test
+from nova.tests import matchers
 from nova.tests import utils
 from nova.tests.virt.test_virt_drivers import _VirtDriverTestCase
 from novadocker.tests.virt.docker import mock_client
@@ -218,3 +220,73 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         instance = utils.get_test_instance(obj=False)
         limit = self.connection._get_memory_limit_bytes(instance)
         self.assertEqual(2048 * units.Mi, limit)
+
+    @mock.patch.object(nova.tests.virt.docker.mock_client.MockClient,
+                'push_repository')
+    @mock.patch.object(nova.virt.docker.driver.DockerDriver,
+                '_find_container_by_name', return_value={'id': 'fake_id'})
+    def test_snapshot(self, byname_mock, repopush_mock):
+        # Use mix-case to test that mixed-case image names succeed.
+        snapshot_name = 'tEsT-SnAp'
+
+        expected_calls = [
+            {'args': (),
+             'kwargs':
+                 {'task_state': task_states.IMAGE_PENDING_UPLOAD}},
+            {'args': (),
+             'kwargs':
+                 {'task_state': task_states.IMAGE_UPLOADING,
+                  'expected_state': task_states.IMAGE_PENDING_UPLOAD}}]
+        func_call_matcher = matchers.FunctionCallMatcher(expected_calls)
+
+        instance_ref = utils.get_test_instance()
+        properties = {'instance_id': instance_ref['id'],
+                      'user_id': str(self.context.user_id)}
+        sent_meta = {'name': snapshot_name, 'is_public': False,
+                     'status': 'creating', 'properties': properties}
+
+        # Because the docker driver doesn't push directly into Glance, we
+        # cannot check that the images are correctly configured in the
+        # fake image service, but we can ensuring naming and other
+        # conventions are accurate.
+        image_service = nova.tests.image.fake.FakeImageService()
+        recv_meta = image_service.create(context, sent_meta)
+
+        self.connection.snapshot(self.context, instance_ref, recv_meta['id'],
+                      func_call_matcher.call)
+
+        (repopush_calls, repopush_kwargs) = repopush_mock.call_args
+        repo = repopush_calls[0]
+
+        # Assure the image_href is correctly placed into the headers.
+        headers_image_href = repopush_kwargs.get('headers', {}).get(
+            'X-Meta-Glance-Image-Id')
+        self.assertEqual(recv_meta['id'], headers_image_href)
+
+        # Assure the repository name pushed into the docker registry is valid.
+        self.assertIn(":" + str(self.connection._get_registry_port()) + "/",
+                      repo)
+        self.assertEqual(repo.count(":"), 1)
+        self.assertEqual(repo.count("/"), 1)
+
+        # That the lower-case snapshot name matches the name pushed
+        image_name = repo.split("/")[1]
+        self.assertEqual(snapshot_name.lower(), image_name)
+
+    def test_get_image_name(self):
+        instance_ref = utils.get_test_instance()
+        image_info = utils.get_test_image_info(None, instance_ref)
+        image_info['container_format'] = 'docker'
+        image_info['name'] = 'MiXeDcAsE-image'
+        repo = self.connection._get_image_name(self.context,
+                                               instance_ref, image_info)
+
+        # Assure the repository name pushed into the docker registry is valid.
+        self.assertIn(":" + str(self.connection._get_registry_port()) + "/",
+                      repo)
+        self.assertEqual(repo.count(":"), 1)
+        self.assertEqual(repo.count("/"), 1)
+
+        # That the lower-case snapshot name matches the name pushed
+        image_name = repo.split("/")[1]
+        self.assertEqual(image_info['name'].lower(), image_name)
