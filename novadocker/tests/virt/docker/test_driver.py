@@ -249,3 +249,10 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
                         return_value={}):
             instances = self.connection.list_instances()
             self.assertFalse(instances)
+
+    def test_get_host_uptime_returns_exec_result(self):
+        result = '4294967296'
+        with mock.patch('nova.utils.execute',
+                        return_value=(result, None)):
+            uptime = self.connection.get_host_uptime(None)
+            self.assertEqual(result, uptime)
