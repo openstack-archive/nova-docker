@@ -261,7 +261,7 @@ class DockerDriver(driver.ComputeDriver):
                 instance_id=instance['name'])
         return '{0}:{1}/{2}'.format(CONF.my_ip,
                                     self._registry_port,
-                                    image['name'])
+                                    image['name'].lower())
 
     def _get_default_cmd(self, image_name):
         default_cmd = ['sh']
@@ -378,7 +378,7 @@ class DockerDriver(driver.ComputeDriver):
         (image_service, image_id) = glance.get_remote_image_service(
             context, image_href)
         image = image_service.show(context, image_id)
-        name = image['name']
+        name = image['name'].lower()
         default_tag = (':' not in name)
         name = '{0}:{1}/{2}'.format(CONF.my_ip,
                                     self._registry_port,
