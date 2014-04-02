@@ -64,6 +64,8 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         self.stubs.Set(network, 'teardown_network', fake_teardown_network)
         self.context = context.RequestContext('fake_user', 'fake_project')
 
+        self.connection.init_host(None)
+
     def test_driver_capabilities(self):
         self.assertFalse(self.connection.capabilities['has_imagecache'])
         self.assertFalse(self.connection.capabilities['supports_recreate'])
