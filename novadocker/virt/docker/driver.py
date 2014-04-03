@@ -231,7 +231,7 @@ class DockerDriver(driver.ComputeDriver):
                 'ip', 'link', 'set', if_local_name, 'up',
                 run_as_root=True)
             utils.execute(
-                'ip', 'link', 'set', if_remote_name, 'netns', nspid,
+                'ip', 'link', 'set', if_remote_name, 'netns', container_id,
                 run_as_root=True)
             utils.execute(
                 'ip', 'netns', 'exec', container_id, 'ifconfig',
@@ -242,6 +242,7 @@ class DockerDriver(driver.ComputeDriver):
                 'ip', 'route', 'replace', 'default', 'via', gateway, 'dev',
                 if_remote_name, run_as_root=True)
         except Exception:
+            LOG.exception("Failed to configure network")
             msg = _('Failed to setup the network, rolling back')
             undo_mgr.rollback_and_reraise(msg=msg, instance=instance)
 

@@ -336,3 +336,43 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         # That the lower-case snapshot name matches the name pushed
         image_name = repo.split("/")[1]
         self.assertEqual(image_info['name'].lower(), image_name)
+
+
+class DockerDriverNetworkTestCase(test.TestCase):
+
+    def setUp(self):
+        super(DockerDriverNetworkTestCase, self).setUp()
+
+    @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
+                '_find_container_by_name', return_value={'id': 'fake_id'})
+    @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
+                '_find_container_pid', return_value=1234)
+    def test_setup_network(self, mock_find_by_name, mock_find_pid):
+        calls = [
+            mock.call('ln', '-sf', '/proc/1234/ns/net',
+                      '/var/run/netns/fake_id', run_as_root=True),
+            mock.call('ip', 'link', 'add', 'name', mock.ANY,
+                      'type', 'veth', 'peer', 'name', mock.ANY,
+                      run_as_root=True),
+            mock.call('brctl', 'addif', 'br100', mock.ANY, run_as_root=True),
+            mock.call('ip', 'link', 'set', mock.ANY, 'up', run_as_root=True),
+            mock.call('ip', 'link', 'set', mock.ANY, 'netns', 'fake_id',
+                      run_as_root=True),
+            mock.call('ip', 'netns', 'exec', 'fake_id',
+                      'ifconfig', mock.ANY, '10.11.12.3/24',
+                      run_as_root=True),
+            mock.call('ip', 'netns', 'exec', 'fake_id', 'ip', 'route',
+                      'replace', 'default', 'via', '10.11.12.1', 'dev',
+                      mock.ANY, run_as_root=True)
+        ]
+        network_info = [
+            {'network': {'bridge': 'br100',
+                         'subnets': [{'gateway': {'address': '10.11.12.1'},
+                                      'cidr': '10.11.12.0/24',
+                                      'ips': [{'address': '10.11.12.3',
+                                               'type': 'fixed', 'version': 4}]
+                                     }]}}]
+        with mock.patch('nova.utils.execute') as ex:
+            driver = novadocker.virt.docker.driver.DockerDriver(object)
+            driver._setup_network({'name': 'fake_instance'}, network_info)
+            ex.assert_has_calls(calls)
