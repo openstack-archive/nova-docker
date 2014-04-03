@@ -79,14 +79,16 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
 
     #NOTE(bcwaldon): This exists only because _get_running_instance on the
     # base class will not let us set a custom disk/container_format.
-    def _get_running_instance(self, obj=False):
-        instance_ref = utils.get_test_instance(obj=obj)
+    def _get_running_instance(self, obj=False, image_name=None, flavor=None):
+        instance_ref = utils.get_test_instance(obj=obj, flavor=flavor)
         network_info = utils.get_test_network_info()
         network_info[0]['network']['subnets'][0]['meta']['dhcp_server'] = \
             '1.1.1.1'
         image_info = utils.get_test_image_info(None, instance_ref)
         image_info['disk_format'] = 'raw'
         image_info['container_format'] = 'docker'
+        if image_name:
+            image_info['name'] = image_name
         self.connection.spawn(self.ctxt, jsonutils.to_primitive(instance_ref),
                 image_info, [], 'herp', network_info=network_info)
         return instance_ref, network_info
@@ -158,7 +160,9 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
                           instance=utils.get_test_instance(),
                           network_info=None)
 
-    def test_create_container(self, image_info=None):
+    def test_create_container(self, image_info=None, instance_href=None):
+        if instance_href is None:
+            instance_href = utils.get_test_instance()
         instance_href = utils.get_test_instance()
         if image_info is None:
             image_info = utils.get_test_image_info(None, instance_href)
@@ -207,7 +211,7 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         image_info['container_format'] = 'invalid_format'
         self.assertRaises(exception.InstanceDeployFailure,
                           self.test_create_container,
-                          image_info)
+                          image_info, instance_href)
 
     @mock.patch.object(network, 'teardown_network')
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,

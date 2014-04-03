@@ -25,8 +25,34 @@ class MockClient(object):
         self._containers = {}
         self.name = None
 
+        # Fake repository
+        self._repository = {'image_with_cmd':
+                                {'container_config': {'Cmd': 'echo Test'}},
+                                'image_without_cmd':
+                                {'container_config': {'Cmd': None}},
+                           }
+        self._pulled_images = {}
+
     def _fake_id(self):
         return uuid.uuid4().hex + uuid.uuid4().hex
+
+    def _image_name(self, image_name):
+        """Split full image name to host and image name
+        """
+        if '/' in image_name:
+            host, image_name = image_name.split('/', 1)
+        return image_name
+
+    def _is_image_exists(self, image_name):
+        """Images not listed in self._repository are
+        presumed existing by default.
+        Images listed in self._repository need to be
+        pulled before inspecting or spawning.
+        """
+        image_name = self._image_name(image_name)
+        if image_name in self._repository:
+            return image_name in self._pulled_images
+        return True
 
     def _is_daemon_running(self):
         return True
@@ -67,11 +93,13 @@ class MockClient(object):
             'VolumesFrom': ''
         }
         data.update(args)
+        if not self._is_image_exists(args['Image']):
+            return None
         container_id = self._fake_id()
         self._containers[container_id] = {
             'id': container_id,
             'running': False,
-            'config': args
+            'config': data
         }
         return container_id
 
@@ -83,6 +111,12 @@ class MockClient(object):
 
     @docker_client.filter_data
     def inspect_image(self, image_name):
+        if not self._is_image_exists(image_name):
+            return None
+
+        image_name = self._image_name(image_name)
+        if image_name in self._pulled_images:
+            return self._pulled_images[image_name]
         return {'container_config': {'Cmd': None}}
 
     @docker_client.filter_data
@@ -141,6 +175,9 @@ class MockClient(object):
         return True
 
     def pull_repository(self, name):
+        image_name = self._image_name(name)
+        if image_name in self._repository:
+            self._pulled_images[image_name] = self._repository[image_name]
         return True
 
     def push_repository(self, name, headers=None):
