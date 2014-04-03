@@ -344,6 +344,9 @@ class DockerDriverNetworkTestCase(test.TestCase):
         calls = [
             mock.call('ln', '-sf', '/proc/1234/ns/net',
                       '/var/run/netns/fake_id', run_as_root=True),
+            mock.call('ip', 'netns', 'exec', 'fake_id', 'ip', 'link',
+                      'delete', 'eth0', run_as_root=True,
+                       check_exit_code=[0, 1]),
             mock.call('ip', 'link', 'add', 'name', mock.ANY,
                       'type', 'veth', 'peer', 'name', mock.ANY,
                       run_as_root=True),
@@ -378,6 +381,9 @@ class DockerDriverNetworkTestCase(test.TestCase):
         calls = [
             mock.call('ln', '-sf', '/proc/1234/ns/net',
                       '/var/run/netns/fake_id', run_as_root=True),
+            mock.call('ip', 'netns', 'exec', 'fake_id', 'ip', 'link',
+                      'delete', 'eth0', run_as_root=True,
+                       check_exit_code=[0, 1]),
             # interface 1
             mock.call('ip', 'link', 'add', 'name', mock.ANY,
                       'type', 'veth', 'peer', 'name', mock.ANY,
