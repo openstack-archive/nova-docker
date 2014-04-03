@@ -18,7 +18,6 @@ A Docker Hypervisor which allows running Linux Containers instead of VMs.
 """
 
 import os
-import random
 import socket
 import time
 
@@ -29,6 +28,7 @@ from nova.compute import power_state
 from nova.compute import task_states
 from nova import exception
 from nova.image import glance
+from nova.network import linux_net
 from nova.openstack.common.gettextutils import _
 from nova.openstack.common import jsonutils
 from nova.openstack.common import log
@@ -101,8 +101,68 @@ class DockerDriver(driver.ComputeDriver):
 
     def plug_vifs(self, instance, network_info):
         """Plug VIFs into networks."""
-        msg = _("VIF plugging is not supported by the Docker driver.")
-        raise NotImplementedError(msg)
+        if not network_info:
+            return
+        container_id = self._find_container_by_name(instance['name']).get('id')
+        if not container_id:
+            return
+        netns_path = '/var/run/netns'
+        if not os.path.exists(netns_path):
+            utils.execute(
+                'mkdir', '-p', netns_path, run_as_root=True)
+        nspid = self._find_container_pid(container_id)
+        if not nspid:
+            msg = _('Cannot find any PID under container "{0}"')
+            raise RuntimeError(msg.format(container_id))
+        netns_path = os.path.join(netns_path, container_id)
+        utils.execute(
+            'ln', '-sf', '/proc/{0}/ns/net'.format(nspid),
+            '/var/run/netns/{0}'.format(container_id),
+            run_as_root=True)
+
+        undo_mgr = utils.UndoManager()
+        for vif in network_info:
+            if_local_name = 'tap%s' % vif['id'][:11]
+            if_remote_name = 'ns%s' % vif['id'][:11]
+            bridge = vif['network']['bridge']
+            gateway = network.find_gateway(instance, vif['network'])
+            ip = network.find_fixed_ip(instance, vif['network'])
+
+            # Device already exists so no continue on.
+            if linux_net.device_exists(if_local_name):
+                continue
+
+            try:
+                utils.execute(
+                    'ip', 'link', 'add', 'name', if_local_name, 'type',
+                    'veth', 'peer', 'name', if_remote_name,
+                    run_as_root=True)
+                undo_mgr.undo_with(lambda: utils.execute(
+                    'ip', 'link', 'delete', if_local_name, run_as_root=True))
+                # NOTE(samalba): Deleting the interface will delete all
+                # associated resources (remove from the bridge,
+                # its pair, etc...)
+                utils.execute(
+                    'brctl', 'addif', bridge, if_local_name,
+                    run_as_root=True)
+                utils.execute(
+                    'ip', 'link', 'set', if_local_name, 'up',
+                    run_as_root=True)
+                utils.execute(
+                    'ip', 'link', 'set', if_remote_name, 'netns', container_id,
+                    run_as_root=True)
+                utils.execute(
+                    'ip', 'netns', 'exec', container_id, 'ifconfig',
+                    if_remote_name, ip,
+                    run_as_root=True)
+                utils.execute(
+                    'ip', 'netns', 'exec', container_id,
+                    'ip', 'route', 'replace', 'default', 'via', gateway, 'dev',
+                    if_remote_name, run_as_root=True)
+            except Exception:
+                LOG.exception("Failed to configure network")
+                msg = _('Failed to setup the network, rolling back')
+                undo_mgr.rollback_and_reraise(msg=msg, instance=instance)
 
     def unplug_vifs(self, instance, network_info):
         """Unplug VIFs from networks."""
@@ -188,64 +248,6 @@ class DockerDriver(driver.ComputeDriver):
             time.sleep(0.5)
             n += 1
 
-    def _setup_network(self, instance, network_info):
-        if not network_info:
-            return
-        container_id = self._find_container_by_name(instance['name']).get('id')
-        if not container_id:
-            return
-        network_info = network_info[0]['network']
-        netns_path = '/var/run/netns'
-        if not os.path.exists(netns_path):
-            utils.execute(
-                'mkdir', '-p', netns_path, run_as_root=True)
-        nspid = self._find_container_pid(container_id)
-        if not nspid:
-            msg = _('Cannot find any PID under container "{0}"')
-            raise RuntimeError(msg.format(container_id))
-        netns_path = os.path.join(netns_path, container_id)
-        utils.execute(
-            'ln', '-sf', '/proc/{0}/ns/net'.format(nspid),
-            '/var/run/netns/{0}'.format(container_id),
-            run_as_root=True)
-        rand = random.randint(0, 100000)
-        if_local_name = 'pvnetl{0}'.format(rand)
-        if_remote_name = 'pvnetr{0}'.format(rand)
-        bridge = network_info['bridge']
-        gateway = network.find_gateway(instance, network_info)
-        ip = network.find_fixed_ip(instance, network_info)
-        undo_mgr = utils.UndoManager()
-        try:
-            utils.execute(
-                'ip', 'link', 'add', 'name', if_local_name, 'type',
-                'veth', 'peer', 'name', if_remote_name,
-                run_as_root=True)
-            undo_mgr.undo_with(lambda: utils.execute(
-                'ip', 'link', 'delete', if_local_name, run_as_root=True))
-            # NOTE(samalba): Deleting the interface will delete all associated
-            # resources (remove from the bridge, its pair, etc...)
-            utils.execute(
-                'brctl', 'addif', bridge, if_local_name,
-                run_as_root=True)
-            utils.execute(
-                'ip', 'link', 'set', if_local_name, 'up',
-                run_as_root=True)
-            utils.execute(
-                'ip', 'link', 'set', if_remote_name, 'netns', container_id,
-                run_as_root=True)
-            utils.execute(
-                'ip', 'netns', 'exec', container_id, 'ifconfig',
-                if_remote_name, ip,
-                run_as_root=True)
-            utils.execute(
-                'ip', 'netns', 'exec', container_id,
-                'ip', 'route', 'replace', 'default', 'via', gateway, 'dev',
-                if_remote_name, run_as_root=True)
-        except Exception:
-            LOG.exception("Failed to configure network")
-            msg = _('Failed to setup the network, rolling back')
-            undo_mgr.rollback_and_reraise(msg=msg, instance=instance)
-
     def _get_memory_limit_bytes(self, instance):
         system_meta = utils.instance_sys_meta(instance)
         return int(system_meta.get('instance_type_memory_mb', 0)) * units.Mi
@@ -297,7 +299,7 @@ class DockerDriver(driver.ComputeDriver):
                     instance_id=instance['name'])
         self.docker.start_container(container_id)
         try:
-            self._setup_network(instance, network_info)
+            self.plug_vifs(instance, network_info)
         except Exception as e:
             msg = _('Cannot setup network: {0}')
             self.docker.kill_container(container_id)

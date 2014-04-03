@@ -46,12 +46,12 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         self.stubs.Set(novadocker.virt.docker.driver.DockerDriver, 'docker',
                        self.mock_client)
 
-        def fake_setup_network(self, instance, network_info):
+        def fake_plug_vifs(self, instance, network_info):
             return
 
         self.stubs.Set(novadocker.virt.docker.driver.DockerDriver,
-                       '_setup_network',
-                       fake_setup_network)
+                       'plug_vifs',
+                       fake_plug_vifs)
 
         def fake_get_registry_port(self):
             return 5042
@@ -144,13 +144,6 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
             }
             self.assertEqual(expected_stats, stats)
 
-    def test_plug_vifs(self):
-        # Check to make sure the method raises NotImplementedError.
-        self.assertRaises(NotImplementedError,
-                          self.connection.plug_vifs,
-                          instance=utils.get_test_instance(),
-                          network_info=None)
-
     def test_unplug_vifs(self):
         # Check to make sure the method raises NotImplementedError.
         self.assertRaises(NotImplementedError,
@@ -193,9 +186,9 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         container_info = self.connection.docker.inspect_container(container_id)
         self.assertEqual(vcpus * 1024, container_info['Config']['CpuShares'])
 
-    @mock.patch('novadocker.virt.docker.driver.DockerDriver._setup_network',
+    @mock.patch('novadocker.virt.docker.driver.DockerDriver.plug_vifs',
                 side_effect=Exception)
-    def test_create_container_net_setup_fails(self, mock_setup_network):
+    def test_create_container_net_setup_fails(self, mock_plug_vifs):
         self.assertRaises(exception.InstanceDeployFailure,
                           self.test_create_container)
         self.assertEqual(0, len(self.mock_client.list_containers()))
@@ -347,23 +340,25 @@ class DockerDriverNetworkTestCase(test.TestCase):
                 '_find_container_by_name', return_value={'id': 'fake_id'})
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
                 '_find_container_pid', return_value=1234)
-    def test_setup_network(self, mock_find_by_name, mock_find_pid):
+    def test_plug_vifs(self, mock_find_by_name, mock_find_pid):
         calls = [
             mock.call('ln', '-sf', '/proc/1234/ns/net',
                       '/var/run/netns/fake_id', run_as_root=True),
-            mock.call('ip', 'link', 'add', 'name', mock.ANY,
-                      'type', 'veth', 'peer', 'name', mock.ANY,
+            mock.call('ip', 'link', 'add', 'name', 'tap920be2f4-2b',
+                      'type', 'veth', 'peer', 'name', 'ns920be2f4-2b',
                       run_as_root=True),
-            mock.call('brctl', 'addif', 'br100', mock.ANY, run_as_root=True),
-            mock.call('ip', 'link', 'set', mock.ANY, 'up', run_as_root=True),
-            mock.call('ip', 'link', 'set', mock.ANY, 'netns', 'fake_id',
+            mock.call('brctl', 'addif', 'br100', 'tap920be2f4-2b',
                       run_as_root=True),
+            mock.call('ip', 'link', 'set', 'tap920be2f4-2b', 'up',
+                      run_as_root=True),
+            mock.call('ip', 'link', 'set', 'ns920be2f4-2b', 'netns',
+                      'fake_id', run_as_root=True),
             mock.call('ip', 'netns', 'exec', 'fake_id',
-                      'ifconfig', mock.ANY, '10.11.12.3/24',
+                      'ifconfig', 'ns920be2f4-2b', '10.11.12.3/24',
                       run_as_root=True),
             mock.call('ip', 'netns', 'exec', 'fake_id', 'ip', 'route',
                       'replace', 'default', 'via', '10.11.12.1', 'dev',
-                      mock.ANY, run_as_root=True)
+                      'ns920be2f4-2b', run_as_root=True)
         ]
         network_info = [
             {'network': {'bridge': 'br100',
@@ -371,8 +366,70 @@ class DockerDriverNetworkTestCase(test.TestCase):
                                       'cidr': '10.11.12.0/24',
                                       'ips': [{'address': '10.11.12.3',
                                                'type': 'fixed', 'version': 4}]
-                                     }]}}]
+                                     }]},
+             'id': '920be2f4-2b98-411e-890a-69bcabb2a5a0'}]
         with mock.patch('nova.utils.execute') as ex:
             driver = novadocker.virt.docker.driver.DockerDriver(object)
-            driver._setup_network({'name': 'fake_instance'}, network_info)
+            driver.plug_vifs({'name': 'fake_instance'}, network_info)
+            ex.assert_has_calls(calls)
+
+    @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
+                '_find_container_by_name', return_value={'id': 'fake_id'})
+    @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
+                '_find_container_pid', return_value=1234)
+    def test_plug_vifs_two_interfaces(self, mock_find_by_name, mock_find_pid):
+        calls = [
+            mock.call('ln', '-sf', '/proc/1234/ns/net',
+                      '/var/run/netns/fake_id', run_as_root=True),
+            # interface 1
+            mock.call('ip', 'link', 'add', 'name', 'tap920be2f4-2b',
+                      'type', 'veth', 'peer', 'name', 'ns920be2f4-2b',
+                      run_as_root=True),
+            mock.call('brctl', 'addif', 'br100', 'tap920be2f4-2b',
+                      run_as_root=True),
+            mock.call('ip', 'link', 'set', 'tap920be2f4-2b', 'up',
+                      run_as_root=True),
+            mock.call('ip', 'link', 'set', 'ns920be2f4-2b', 'netns', 'fake_id',
+                      run_as_root=True),
+            mock.call('ip', 'netns', 'exec', 'fake_id',
+                      'ifconfig', 'ns920be2f4-2b', '10.11.12.3/24',
+                      run_as_root=True),
+            mock.call('ip', 'netns', 'exec', 'fake_id', 'ip', 'route',
+                      'replace', 'default', 'via', '10.11.12.1', 'dev',
+                      'ns920be2f4-2b', run_as_root=True),
+            # interface 2
+            mock.call('ip', 'link', 'add', 'name', 'tap920be2f4-2b',
+                      'type', 'veth', 'peer', 'name', 'ns920be2f4-2b',
+                      run_as_root=True),
+            mock.call('brctl', 'addif', 'br100', 'tap920be2f4-2b',
+                      run_as_root=True),
+            mock.call('ip', 'link', 'set', 'tap920be2f4-2b', 'up',
+                      run_as_root=True),
+            mock.call('ip', 'link', 'set', 'ns920be2f4-2b', 'netns', 'fake_id',
+                      run_as_root=True),
+            mock.call('ip', 'netns', 'exec', 'fake_id',
+                      'ifconfig', 'ns920be2f4-2b', '10.13.12.3/24',
+                      run_as_root=True),
+            mock.call('ip', 'netns', 'exec', 'fake_id', 'ip', 'route',
+                      'replace', 'default', 'via', '10.13.12.1', 'dev',
+                      'ns920be2f4-2b', run_as_root=True)
+        ]
+        network_info = [
+            {'network': {'bridge': 'br100',
+                         'subnets': [{'gateway': {'address': '10.11.12.1'},
+                                      'cidr': '10.11.12.0/24',
+                                      'ips': [{'address': '10.11.12.3',
+                                               'type': 'fixed', 'version': 4}],
+                                    }]},
+             'id': '920be2f4-2b98-411e-890a-69bcabb2a5a0'},
+            {'network': {'bridge': 'br100',
+                         'subnets': [{'gateway': {'address': '10.13.12.1'},
+                                      'cidr': '10.13.12.0/24',
+                                      'ips': [{'address': '10.13.12.3',
+                                               'type': 'fixed', 'version': 4}]
+                                    }]},
+             'id': '920be2f4-2b98-411e-890a-69bcabb2a5a0'}]
+        with mock.patch('nova.utils.execute') as ex:
+            driver = novadocker.virt.docker.driver.DockerDriver(object)
+            driver.plug_vifs({'name': 'fake_instance'}, network_info)
             ex.assert_has_calls(calls)
