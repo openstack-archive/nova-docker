@@ -42,6 +42,9 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
                       run_as_root=True),
             mock.call('ip', 'link', 'set', 'ns920be2f4-2b', 'netns',
                       'fake_id', run_as_root=True),
+            mock.call('ip', 'netns', 'exec', 'fake_id', 'ip', 'link',
+                      'set', 'ns920be2f4-2b', 'address', '00:11:22:33:44:55',
+                      run_as_root=True),
             mock.call('ip', 'netns', 'exec', 'fake_id',
                       'ifconfig', 'ns920be2f4-2b', '10.11.12.3/24',
                       run_as_root=True),
@@ -56,6 +59,7 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
                                       'ips': [{'address': '10.11.12.3',
                                                'type': 'fixed', 'version': 4}]
                                      }]},
+             'address': '00:11:22:33:44:55',
              'id': '920be2f4-2b98-411e-890a-69bcabb2a5a0',
              'type': network_model.VIF_TYPE_BRIDGE}]
         with mock.patch('nova.utils.execute') as ex:
@@ -82,6 +86,9 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
                       run_as_root=True),
             mock.call('ip', 'link', 'set', 'ns920be2f4-2b', 'netns', 'fake_id',
                       run_as_root=True),
+            mock.call('ip', 'netns', 'exec', 'fake_id', 'ip', 'link',
+                      'set', 'ns920be2f4-2b', 'address', '00:11:22:33:44:55',
+                      run_as_root=True),
             mock.call('ip', 'netns', 'exec', 'fake_id',
                       'ifconfig', 'ns920be2f4-2b', '10.11.12.3/24',
                       run_as_root=True),
@@ -98,6 +105,9 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
                       run_as_root=True),
             mock.call('ip', 'link', 'set', 'ns920be2f4-2b', 'netns', 'fake_id',
                       run_as_root=True),
+            mock.call('ip', 'netns', 'exec', 'fake_id', 'ip', 'link',
+                      'set', 'ns920be2f4-2b', 'address', '00:11:22:33:44:66',
+                      run_as_root=True),
             mock.call('ip', 'netns', 'exec', 'fake_id',
                       'ifconfig', 'ns920be2f4-2b', '10.13.12.3/24',
                       run_as_root=True),
@@ -112,6 +122,7 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
                                       'ips': [{'address': '10.11.12.3',
                                                'type': 'fixed', 'version': 4}],
                                     }]},
+             'address': '00:11:22:33:44:55',
              'type': network_model.VIF_TYPE_BRIDGE,
              'id': '920be2f4-2b98-411e-890a-69bcabb2a5a0'},
             {'network': {'bridge': 'br100',
@@ -120,6 +131,7 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
                                       'ips': [{'address': '10.13.12.3',
                                                'type': 'fixed', 'version': 4}]
                                     }]},
+             'address': '00:11:22:33:44:66',
              'type': network_model.VIF_TYPE_BRIDGE,
              'id': '920be2f4-2b98-411e-890a-69bcabb2a5a0'}]
         with mock.patch('nova.utils.execute') as ex:
