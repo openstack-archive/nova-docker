@@ -28,7 +28,6 @@ from nova.compute import power_state
 from nova.compute import task_states
 from nova import exception
 from nova.image import glance
-from nova.network import linux_net
 from nova.openstack.common.gettextutils import _
 from nova.openstack.common import jsonutils
 from nova.openstack.common import log
@@ -38,6 +37,7 @@ from nova.virt import driver
 from novadocker.virt.docker import client as docker_client
 from novadocker.virt.docker import hostinfo
 from novadocker.virt.docker import network
+from novadocker.virt.docker import vifs
 
 
 docker_opts = [
@@ -62,6 +62,7 @@ class DockerDriver(driver.ComputeDriver):
     def __init__(self, virtapi):
         super(DockerDriver, self).__init__(virtapi)
         self._docker = None
+        self.vif_driver = vifs.DockerGenericVIFDriver()
 
     @property
     def docker(self):
@@ -129,50 +130,8 @@ class DockerDriver(driver.ComputeDriver):
         utils.execute('ip', 'netns', 'exec', container_id, 'ip',
                       'link', 'delete', 'eth0', run_as_root=True,
                        check_exit_code=[0, 1])
-
-        undo_mgr = utils.UndoManager()
         for vif in network_info:
-            if_local_name = 'tap%s' % vif['id'][:11]
-            if_remote_name = 'ns%s' % vif['id'][:11]
-            bridge = vif['network']['bridge']
-            gateway = network.find_gateway(instance, vif['network'])
-            ip = network.find_fixed_ip(instance, vif['network'])
-
-            # Device already exists so no continue on.
-            if linux_net.device_exists(if_local_name):
-                continue
-
-            try:
-                utils.execute(
-                    'ip', 'link', 'add', 'name', if_local_name, 'type',
-                    'veth', 'peer', 'name', if_remote_name,
-                    run_as_root=True)
-                undo_mgr.undo_with(lambda: utils.execute(
-                    'ip', 'link', 'delete', if_local_name, run_as_root=True))
-                # NOTE(samalba): Deleting the interface will delete all
-                # associated resources (remove from the bridge,
-                # its pair, etc...)
-                utils.execute(
-                    'brctl', 'addif', bridge, if_local_name,
-                    run_as_root=True)
-                utils.execute(
-                    'ip', 'link', 'set', if_local_name, 'up',
-                    run_as_root=True)
-                utils.execute(
-                    'ip', 'link', 'set', if_remote_name, 'netns', container_id,
-                    run_as_root=True)
-                utils.execute(
-                    'ip', 'netns', 'exec', container_id, 'ifconfig',
-                    if_remote_name, ip,
-                    run_as_root=True)
-                utils.execute(
-                    'ip', 'netns', 'exec', container_id,
-                    'ip', 'route', 'replace', 'default', 'via', gateway, 'dev',
-                    if_remote_name, run_as_root=True)
-            except Exception:
-                LOG.exception("Failed to configure network")
-                msg = _('Failed to setup the network, rolling back')
-                undo_mgr.rollback_and_reraise(msg=msg, instance=instance)
+            self.vif_driver.plug(instance, vif, container_id)
 
     def unplug_vifs(self, instance, network_info):
         """Unplug VIFs from networks."""
