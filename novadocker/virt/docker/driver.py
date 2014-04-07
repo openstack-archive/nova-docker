@@ -275,7 +275,8 @@ class DockerDriver(driver.ComputeDriver):
             'Hostname': instance['name'],
             'Image': image_name,
             'Memory': self._get_memory_limit_bytes(instance),
-            'CpuShares': self._get_cpu_shares(instance)
+            'CpuShares': self._get_cpu_shares(instance),
+            'NetworkDisabled': True,
         }
         default_cmd = self._get_default_cmd(image_name)
         if default_cmd:
