@@ -73,6 +73,9 @@ class DockerGenericVIFDriver(object):
                           run_as_root=True)
             utils.execute('ip', 'link', 'set', if_remote_name, 'netns',
                           container_id, run_as_root=True)
+            utils.execute('ip', 'netns', 'exec', container_id, 'ip', 'link',
+                          'set', if_remote_name, 'address', vif['address'],
+                          run_as_root=True)
             utils.execute('ip', 'netns', 'exec', container_id, 'ifconfig',
                           if_remote_name, ip, run_as_root=True)
             utils.execute('ip', 'netns', 'exec', container_id,
