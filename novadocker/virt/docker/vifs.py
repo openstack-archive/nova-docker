@@ -43,9 +43,49 @@ class DockerGenericVIFDriver(object):
 
         if vif_type == network_model.VIF_TYPE_BRIDGE:
             self.plug_bridge(instance, vif, container_id)
+        elif vif_type == network_model.VIF_TYPE_OVS:
+            self.plug_ovs(instance, vif, container_id)
         else:
             raise exception.NovaException(
                 _("Unexpected vif_type=%s") % vif_type)
+
+    def plug_ovs(self, instance, vif, container_id):
+        if_local_name = 'tap%s' % vif['id'][:11]
+        if_remote_name = 'ns%s' % vif['id'][:11]
+        bridge = vif['network']['bridge']
+        gateway = network.find_gateway(instance, vif['network'])
+        ip = network.find_fixed_ip(instance, vif['network'])
+
+        # Device already exists so return.
+        if linux_net.device_exists(if_local_name):
+            return
+        undo_mgr = utils.UndoManager()
+
+        try:
+            utils.execute('ip', 'link', 'add', 'name', if_local_name, 'type',
+                          'veth', 'peer', 'name', if_remote_name,
+                          run_as_root=True)
+            linux_net.create_ovs_vif_port(bridge, if_local_name,
+                                          network.get_ovs_interfaceid(vif),
+                                          vif['address'],
+                                          instance['uuid'])
+            utils.execute('ip', 'link', 'set', if_local_name, 'up',
+                          run_as_root=True)
+            utils.execute('ip', 'link', 'set', if_remote_name, 'netns',
+                          container_id, run_as_root=True)
+            utils.execute('ip', 'netns', 'exec', container_id, 'ip', 'link',
+                          'set', if_remote_name, 'address', vif['address'],
+                          run_as_root=True)
+            utils.execute('ip', 'netns', 'exec', container_id, 'ifconfig',
+                          if_remote_name, ip, run_as_root=True)
+            utils.execute('ip', 'netns', 'exec', container_id,
+                          'ip', 'route', 'replace', 'default', 'via',
+                          gateway, 'dev', if_remote_name, run_as_root=True)
+
+        except Exception:
+            LOG.exception("Failed to configure network")
+            msg = _('Failed to setup the network, rolling back')
+            undo_mgr.rollback_and_reraise(msg=msg, instance=instance)
 
     def plug_bridge(self, instance, vif, container_id):
         if_local_name = 'tap%s' % vif['id'][:11]
