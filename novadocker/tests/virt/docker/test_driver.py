@@ -144,13 +144,6 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
             }
             self.assertEqual(expected_stats, stats)
 
-    def test_unplug_vifs(self):
-        # Check to make sure the method raises NotImplementedError.
-        self.assertRaises(NotImplementedError,
-                          self.connection.unplug_vifs,
-                          instance=utils.get_test_instance(),
-                          network_info=None)
-
     def test_create_container(self, image_info=None):
         instance_href = utils.get_test_instance()
         if image_info is None:
@@ -204,8 +197,10 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
 
     @mock.patch.object(network, 'teardown_network')
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
+                       'unplug_vifs')
+    @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
                 '_find_container_by_name', return_value={'id': 'fake_id'})
-    def test_destroy_container(self, byname_mock, teardown_mock):
+    def test_destroy_container(self, byname_mock, unplug_mock, teardown_mock):
         instance = utils.get_test_instance()
         self.connection.destroy(self.context, instance, 'fake_networkinfo')
         byname_mock.assert_called_once_with(instance['name'])
