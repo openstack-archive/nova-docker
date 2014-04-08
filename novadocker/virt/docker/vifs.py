@@ -20,6 +20,7 @@ from nova.network import linux_net
 from nova.network import model as network_model
 from nova.openstack.common.gettextutils import _
 from nova.openstack.common import log as logging
+from nova.openstack.common import processutils
 from nova import utils
 from novadocker.virt.docker import network
 
@@ -125,3 +126,38 @@ class DockerGenericVIFDriver(object):
             LOG.exception("Failed to configure network")
             msg = _('Failed to setup the network, rolling back')
             undo_mgr.rollback_and_reraise(msg=msg, instance=instance)
+
+    def unplug(self, instance, vif):
+        vif_type = vif['type']
+
+        LOG.debug(_('vif_type=%(vif_type)s instance=%(instance)s '
+                    'vif=%(vif)s'),
+                  {'vif_type': vif_type, 'instance': instance,
+                   'vif': vif})
+
+        if vif_type is None:
+            raise exception.NovaException(
+                _("vif_type parameter must be present "
+                  "for this vif_driver implementation"))
+
+        if vif_type == network_model.VIF_TYPE_BRIDGE:
+            self.unplug_bridge(instance, vif)
+        elif vif_type == network_model.VIF_TYPE_OVS:
+            self.unplug_ovs(instance, vif)
+        else:
+            raise exception.NovaException(
+                _("Unexpected vif_type=%s") % vif_type)
+
+    def unplug_ovs(self, instance, vif):
+        """Unplug the VIF by deleting the port from the bridge."""
+        try:
+            linux_net.delete_ovs_vif_port(vif['network']['bridge'],
+                                          vif['devname'])
+        except processutils.ProcessExecutionError:
+            LOG.exception(_("Failed while unplugging vif"), instance=instance)
+
+    def unplug_bridge(self, instance, vif):
+        # NOTE(arosen): nothing has to be done in the linuxbridge case
+        # as when the veth is deleted it automatically is removed from
+        # the bridge.
+        pass

@@ -126,8 +126,8 @@ class DockerDriver(driver.ComputeDriver):
 
     def unplug_vifs(self, instance, network_info):
         """Unplug VIFs from networks."""
-        msg = _("VIF unplugging is not supported by the Docker driver.")
-        raise NotImplementedError(msg)
+        for vif in network_info:
+            self.vif_driver.unplug(instance, vif)
 
     def _find_container_by_name(self, name):
         for info in self.list_instances(inspect=True):
@@ -275,6 +275,7 @@ class DockerDriver(driver.ComputeDriver):
         self.docker.stop_container(container_id)
         self.docker.destroy_container(container_id)
         network.teardown_network(container_id)
+        self.unplug_vifs(instance, network_info)
 
     def cleanup(self, context, instance, network_info, block_device_info=None,
                 destroy_disks=True):
