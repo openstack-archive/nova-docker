@@ -260,13 +260,17 @@ class DockerDriver(driver.ComputeDriver):
                                     self._registry_port,
                                     image['name'].lower())
 
-    def _get_default_cmd(self, image_name):
-        default_cmd = ['sh']
-        info = self.docker.inspect_image(image_name)
-        if not info:
-            return default_cmd
-        if not info['container_config']['Cmd']:
-            return default_cmd
+    def _pull_missing_image(self, image_name, instance):
+        msg = _('Image name "%s" does not exist, fetching it...')
+        LOG.debug(msg % image_name)
+        res = self.docker.pull_repository(image_name)
+        if res is False:
+            msg = _('Cannot pull missing image "%s"')
+            raise exception.InstanceDeployFailure(
+                msg % instance['name'],
+                instance_id=instance['name'])
+        image = self.docker.inspect_image(image_name)
+        return image
 
     def spawn(self, context, instance, image_meta, injected_files,
               admin_password, network_info=None, block_device_info=None):
@@ -278,23 +282,21 @@ class DockerDriver(driver.ComputeDriver):
             'CpuShares': self._get_cpu_shares(instance),
             'NetworkDisabled': True,
         }
-        default_cmd = self._get_default_cmd(image_name)
-        if default_cmd:
-            args['Cmd'] = default_cmd
+
+        image = self.docker.inspect_image(image_name)
+
+        if not image:
+            image = self._pull_missing_image(image_name, instance)
+
+        if not (image and image['container_config']['Cmd']):
+            args['Cmd'] = ['sh']
+
         container_id = self._create_container(instance, args)
         if not container_id:
-            msg = _('Image name "{0}" does not exist, fetching it...')
-            LOG.info(msg.format(image_name))
-            res = self.docker.pull_repository(image_name)
-            if res is False:
-                raise exception.InstanceDeployFailure(
-                    _('Cannot pull missing image'),
-                    instance_id=instance['name'])
-            container_id = self._create_container(instance, args)
-            if not container_id:
-                raise exception.InstanceDeployFailure(
-                    _('Cannot create container'),
-                    instance_id=instance['name'])
+            raise exception.InstanceDeployFailure(
+                _('Cannot create container'),
+                instance_id=instance['name'])
+
         self.docker.start_container(container_id)
         try:
             self._setup_network(instance, network_info)
