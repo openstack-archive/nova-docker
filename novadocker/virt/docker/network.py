@@ -50,3 +50,9 @@ def find_gateway(instance, network_info):
         return subnet['gateway']['address']
     raise exception.InstanceDeployFailure(_('Cannot find gateway'),
                                           instance_id=instance['uuid'])
+
+
+# NOTE(arosen) - this method should be removed after it's moved into the
+# linux_net code in nova.
+def get_ovs_interfaceid(vif):
+    return vif.get('ovs_interfaceid') or vif['id']
