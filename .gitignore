@@ -48,4 +48,5 @@ ChangeLog
 
 # Editors
 *~
-.*.swp
+*.swp
+*.swo
