@@ -56,9 +56,16 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         def fake_get_registry_port(self):
             return 5042
 
+        def fake_get_registry_ip(self):
+            return '192.168.0.1'
+
         self.stubs.Set(novadocker.virt.docker.driver.DockerDriver,
                        '_get_registry_port',
                        fake_get_registry_port)
+
+        self.stubs.Set(novadocker.virt.docker.driver.DockerDriver,
+                       '_get_registry_ip',
+                       fake_get_registry_ip)
 
         self.stubs.Set(novadocker.virt.docker.hostinfo,
                        'get_meminfo', stubs.get_meminfo)
@@ -316,7 +323,8 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         self.assertEqual(recv_meta['id'], headers_image_href)
 
         # Assure the repository name pushed into the docker registry is valid.
-        self.assertIn(":" + str(self.connection._get_registry_port()) + "/",
+        self.assertIn(str(self.connection._get_registry_ip()) + ":" +
+                      str(self.connection._get_registry_port()) + "/",
                       repo)
         self.assertEqual(repo.count(":"), 1)
         self.assertEqual(repo.count("/"), 1)
@@ -334,7 +342,8 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
                                                instance_ref, image_info)
 
         # Assure the repository name pushed into the docker registry is valid.
-        self.assertIn(":" + str(self.connection._get_registry_port()) + "/",
+        self.assertIn(str(self.connection._get_registry_ip()) + ":" +
+                      str(self.connection._get_registry_port()) + "/",
                       repo)
         self.assertEqual(repo.count(":"), 1)
         self.assertEqual(repo.count("/"), 1)
