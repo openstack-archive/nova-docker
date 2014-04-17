@@ -83,7 +83,6 @@ function install_nova_hypervisor {
     setup_develop $DOCKER_DIR
     # TODO : move into configure_nova_hypervisor_rootwrap if
     #        https://review.openstack.org/#/c/84839/ is merged
-    ln -snf $DOCKER_DIR/etc/nova/rootwrap.d/docker.filters  $NOVA_DIR/etc/nova/rootwrap.d/docker.filters
 }
 
 # start_nova_hypervisor - Start any required external services
@@ -95,6 +94,9 @@ function start_nova_hypervisor {
     if ! (is_docker_running); then
         die $LINENO "Docker not running"
     fi
+
+    # push the rootwrap
+    sudo cp $DOCKER_DIR/etc/nova/rootwrap.d/docker.filters  /etc/nova/rootwrap.d/docker.filters
 
     # Start the Docker registry container
     docker run -d -p ${DOCKER_REGISTRY_PORT}:5000 \
