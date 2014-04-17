@@ -125,8 +125,8 @@ function start_nova_hypervisor {
 # stop_nova_hypervisor - Stop any external services
 function stop_nova_hypervisor {
     # Stop the docker registry container
-    docker kill $DOCKER_REGISTRY_IMAGE
-    docker rm $DOCKER_REGISTRY_IMAGE
+    docker kill $DOCKER_REGISTRY_IMAGE_NAME
+    docker rm $DOCKER_REGISTRY_IMAGE_NAME
 }
 
 # Restore xtrace
