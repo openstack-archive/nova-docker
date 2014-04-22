@@ -29,6 +29,7 @@ from nova.compute import task_states
 from nova import exception
 from nova.image import glance
 from nova.openstack.common.gettextutils import _
+from nova.openstack.common import importutils
 from nova.openstack.common import jsonutils
 from nova.openstack.common import log
 from nova.openstack.common import units
@@ -47,6 +48,8 @@ docker_opts = [
                       'docker-registry container'),
                deprecated_group='DEFAULT',
                deprecated_name='docker_registry_default_port'),
+    cfg.StrOpt('vif_driver',
+               default='novadocker.virt.docker.vifs.DockerGenericVIFDriver')
 ]
 
 CONF = cfg.CONF
@@ -62,7 +65,8 @@ class DockerDriver(driver.ComputeDriver):
     def __init__(self, virtapi):
         super(DockerDriver, self).__init__(virtapi)
         self._docker = None
-        self.vif_driver = vifs.DockerGenericVIFDriver()
+        vif_class = importutils.import_class(CONF.docker.vif_driver)
+        self.vif_driver = vif_class()
 
     @property
     def docker(self):
