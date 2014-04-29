@@ -38,7 +38,6 @@ from nova.virt import driver
 from novadocker.virt.docker import client as docker_client
 from novadocker.virt.docker import hostinfo
 from novadocker.virt.docker import network
-from novadocker.virt.docker import vifs
 
 
 docker_opts = [
