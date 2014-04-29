@@ -103,7 +103,7 @@ function start_nova_hypervisor {
         -e OS_GLANCE_URL="${SERVICE_PROTOCOL}://${GLANCE_HOSTPORT}" \
         -e OS_AUTH_URL=${OS_AUTH_URL} \
         --name $DOCKER_REGISTRY_IMAGE_NAME \
-        $DOCKER_REGISTRY_IMAGE ./docker-registry/run.sh
+        $DOCKER_REGISTRY_IMAGE
 
     echo "Waiting for docker registry to start..."
     DOCKER_REGISTRY=${SERVICE_HOST}:${DOCKER_REGISTRY_PORT}
