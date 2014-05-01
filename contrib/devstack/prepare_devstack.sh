@@ -6,6 +6,10 @@ env
 NOVADOCKERDIR=$(realpath $(dirname $0)/../..)
 INSTALLDIR=${INSTALLDIR:-/opt/stack}
 
+# Allow the registry container to access keystone and glance
+iptables -I INPUT -p tcp -m tcp --src 172.17.0.0/16 --dport 35357 -j ACCEPT
+iptables -I INPUT -p tcp -m tcp --src 172.17.0.0/16 --dport 9292 -j ACCEPT
+
 cp $NOVADOCKERDIR/contrib/devstack/extras.d/70-docker.sh $INSTALLDIR/devstack/extras.d/
 cp $NOVADOCKERDIR/contrib/devstack/lib/nova_plugins/hypervisor-docker $INSTALLDIR/devstack/lib/nova_plugins/
 
