@@ -3,6 +3,9 @@ set -xe
 
 SCRIPTDIR=$(realpath $(dirname $0))
 
+# Test fixup
+export PATH=$PATH:/usr/local/sbin:/usr/sbin
+
 export INSTALLDIR=$BASE/new
 bash -xe $SCRIPTDIR/prepare_devstack.sh
 
