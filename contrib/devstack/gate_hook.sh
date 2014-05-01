@@ -3,6 +3,15 @@ set -xe
 
 SCRIPTDIR=$(realpath $(dirname $0))
 
+# Test fixup
+export PATH=$PATH:/usr/local/sbin:/usr/sbin
+sudo useradd -U -s /bin/bash -d /opt/stack/new -m stack
+sudo useradd -U -s /bin/bash -m tempest
+
+# Allow the registry container to access keystone and glance
+sudo iptables -I INPUT -p tcp -m tcp --dport 35357 -j ACCEPT
+sudo iptables -I INPUT -p tcp -m tcp --dport 9292 -j ACCEPT
+
 export INSTALLDIR=$BASE/new
 bash -xe $SCRIPTDIR/prepare_devstack.sh
 
