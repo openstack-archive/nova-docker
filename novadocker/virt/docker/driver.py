@@ -47,8 +47,7 @@ docker_opts = [
                help=_('Default host to find the docker registry')),
     cfg.IntOpt('registry_default_port',
                default=5042,
-               help=_('Default TCP port to find the '
-                      'docker-registry container'),
+               help=_('Default TCP port to find the docker registry'),
                deprecated_group='DEFAULT',
                deprecated_name='docker_registry_default_port'),
     cfg.StrOpt('vif_driver',
