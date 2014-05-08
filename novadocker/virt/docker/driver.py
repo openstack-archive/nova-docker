@@ -42,6 +42,9 @@ from novadocker.virt import hostutils
 
 
 docker_opts = [
+    cfg.StrOpt('registry_default_host',
+               default='$my_ip',
+               help=_('Default host to find the docker registry'),
     cfg.IntOpt('registry_default_port',
                default=5042,
                help=_('Default TCP port to find the '
@@ -54,7 +57,6 @@ docker_opts = [
 
 CONF = cfg.CONF
 CONF.register_opts(docker_opts, 'docker')
-CONF.import_opt('my_ip', 'nova.netconf')
 
 LOG = log.getLogger(__name__)
 
@@ -79,6 +81,7 @@ class DockerDriver(driver.ComputeDriver):
             raise exception.NovaException(_('Docker daemon is not running or '
                 'is not reachable (check the rights on /var/run/docker.sock)'))
 
+        self._registry_host = self._get_registry_host()
         self._registry_port = self._get_registry_port()
 
     def _is_daemon_running(self):
@@ -222,7 +225,7 @@ class DockerDriver(driver.ComputeDriver):
             msg = _('Image container format not supported ({0})')
             raise exception.InstanceDeployFailure(msg.format(fmt),
                 instance_id=instance['name'])
-        return '{0}:{1}/{2}'.format(CONF.my_ip,
+        return '{0}:{1}/{2}'.format(self._registry_host,
                                     self._registry_port,
                                     image['name'].lower())
 
@@ -317,6 +320,9 @@ class DockerDriver(driver.ComputeDriver):
         if not container_id:
             return
         return self.docker.get_container_logs(container_id)
+
+    def _get_registry_host(self):
+        return CONF.docker.registry_default_host
 
     def _get_registry_port(self):
         default_port = CONF.docker.registry_default_port

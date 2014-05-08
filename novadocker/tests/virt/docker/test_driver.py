@@ -18,6 +18,8 @@ import socket
 
 import mock
 
+from oslo.config import cfg
+
 from nova.compute import task_states
 from nova import context
 from nova import exception
@@ -33,6 +35,12 @@ from novadocker.tests.virt.docker import stubs
 import novadocker.virt.docker
 from novadocker.virt.docker import hostinfo
 from novadocker.virt.docker import network
+
+
+CONF = cfg.CONF
+CONF.import_opt('registry_default_host',
+                'novadocker.virt.docker.driver',
+                'docker')
 
 
 class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
@@ -335,3 +343,7 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
                         return_value=(result, None)):
             uptime = self.connection.get_host_uptime(None)
             self.assertEqual(result, uptime)
+
+    def test_get_registry_host(self):
+        registry_host = self.connection._get_registry_host()
+        self.assertEqual(registry_host, CONF.docker.registry_default_host)
