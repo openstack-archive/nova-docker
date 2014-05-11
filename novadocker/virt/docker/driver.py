@@ -227,7 +227,7 @@ class DockerDriver(driver.ComputeDriver):
                                     image['name'].lower())
 
     def _pull_missing_image(self, image_name, instance):
-        msg = _('Image name "%s" does not exist, fetching it...')
+        msg = 'Image name "%s" does not exist, fetching it...'
         LOG.debug(msg % image_name)
         res = self.docker.pull_repository(image_name)
         if res is False:
