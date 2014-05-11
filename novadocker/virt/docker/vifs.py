@@ -32,8 +32,8 @@ class DockerGenericVIFDriver(object):
     def plug(self, instance, vif, container_id):
         vif_type = vif['type']
 
-        LOG.debug(_('vif_type=%(vif_type)s instance=%(instance)s '
-                    'vif=%(vif)s'),
+        LOG.debug('vif_type=%(vif_type)s instance=%(instance)s '
+                  'vif=%(vif)s',
                   {'vif_type': vif_type, 'instance': instance,
                    'vif': vif})
 
@@ -130,8 +130,8 @@ class DockerGenericVIFDriver(object):
     def unplug(self, instance, vif):
         vif_type = vif['type']
 
-        LOG.debug(_('vif_type=%(vif_type)s instance=%(instance)s '
-                    'vif=%(vif)s'),
+        LOG.debug('vif_type=%(vif_type)s instance=%(instance)s '
+                  'vif=%(vif)s',
                   {'vif_type': vif_type, 'instance': instance,
                    'vif': vif})
 
