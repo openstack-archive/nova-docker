@@ -26,9 +26,10 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
         super(DockerGenericVIFDriverTestCase, self).setUp()
 
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
-                '_find_container_by_name', return_value={'id': 'fake_id'})
+                       '_find_container_by_name',
+                       return_value={'id': 'fake_id'})
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
-                '_find_container_pid', return_value=1234)
+                       '_find_container_pid', return_value=1234)
     def test_plug_vifs_bridge(self, mock_find_by_name, mock_find_pid):
         calls = [
             mock.call('ln', '-sf', '/proc/1234/ns/net',
@@ -68,9 +69,10 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
             ex.assert_has_calls(calls)
 
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
-                '_find_container_by_name', return_value={'id': 'fake_id'})
+                       '_find_container_by_name',
+                       return_value={'id': 'fake_id'})
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
-                '_find_container_pid', return_value=1234)
+                       '_find_container_pid', return_value=1234)
     def test_plug_vifs_bridge_two_interfaces(self, mock_find_by_name,
                                              mock_find_pid):
         calls = [
@@ -140,9 +142,10 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
             ex.assert_has_calls(calls)
 
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
-                '_find_container_by_name', return_value={'id': 'fake_id'})
+                       '_find_container_by_name',
+                       return_value={'id': 'fake_id'})
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
-                '_find_container_pid', return_value=1234)
+                       '_find_container_pid', return_value=1234)
     def test_plug_vifs_ovs(self, mock_find_by_name, mock_find_pid):
         iface_id = '920be2f4-2b98-411e-890a-69bcabb2a5a0'
         calls = [
@@ -211,5 +214,5 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
         with mock.patch('nova.utils.execute') as ex:
             driver = novadocker.virt.docker.driver.DockerDriver(object)
             driver.unplug_vifs({'name': 'fake_instance',
-                              'uuid': 'instance_uuid'}, network_info)
+                               'uuid': 'instance_uuid'}, network_info)
             ex.assert_has_calls(calls)

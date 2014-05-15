@@ -64,8 +64,10 @@ class HostInfoTestCase(test.NoDBTestCase):
 
     @mock.patch('novadocker.virt.docker.hostinfo.get_mounts')
     def test_find_cgroup_devices_path_ubuntu(self, mock):
-        mock.return_value = ['cgroup /cgroup tmpfs rw,relatime,mode=755 0 0',
-                'cgroup /cgroup/devices cgroup rw,relatime,devices,' +
-                'clone_children 0 0']
+        mock.return_value = [
+            'cgroup /cgroup tmpfs rw,relatime,mode=755 0 0',
+            'cgroup /cgroup/devices cgroup rw,relatime,devices,' +
+            'clone_children 0 0'
+        ]
         path = hostinfo.get_cgroup_devices_path()
         self.assertEqual('/cgroup/devices', path)

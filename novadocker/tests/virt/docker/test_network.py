@@ -34,7 +34,7 @@ class NetworkTestCase(test.NoDBTestCase):
         utils_mock.return_value = ("first-id\nsecond-id\nthird-id\n", None)
         network.teardown_network(id)
         utils_mock.assert_called_with('ip', 'netns', 'delete', id,
-                              run_as_root=True)
+                                      run_as_root=True)
 
     @mock.patch.object(utils, 'execute')
     def test_teardown_network_not_in_list(self, utils_mock):
