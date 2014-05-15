@@ -20,6 +20,8 @@ A Docker Hypervisor which allows running Linux Containers instead of VMs.
 import os
 import socket
 import time
+import psutil
+import signal
 
 from oslo.config import cfg
 
@@ -299,6 +301,32 @@ class DockerDriver(driver.ComputeDriver):
         if not self.docker.start_container(container_id):
             LOG.warning(_('Cannot restart the container, '
                           'please check docker logs'))
+
+    def _send_signal_recursive(self, instance, signal):
+        container_id = self._find_container_by_name(instance['name']).get('id')
+        if not container_id:
+            return
+
+        pid = self._find_container_pid(container_id)
+        if pid is None:
+            msg = _('Cannot find any PID under container "{0}"')
+            raise RuntimeError(msg.format(container_id))
+        # We have to send sigstop/cont to all processes in the container
+        # so we go through the whole process tree to do this.
+        parent = psutil.Process(pid)
+        for child in parent.get_children(recursive=True):
+            utils.execute('kill', '-%d' % signal, child.pid, run_as_root=True)
+        utils.execute('kill', '-%d' % signal, parent.pid, run_as_root=True)
+
+
+    def pause(self, instance):
+        """ Pause the specified instance. """
+        self._send_signal_recursive(instance, signal.SIGSTOP)
+
+    def unpause(self, instance):
+        """ Unpause paused VM instance. """
+
+        self._send_signal_recursive(instance, signal.SIGCONT)
 
     def power_on(self, context, instance, network_info, block_device_info):
         container_id = self._find_container_by_name(instance['name']).get('id')
