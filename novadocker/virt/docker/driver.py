@@ -188,7 +188,7 @@ class DockerDriver(driver.ComputeDriver):
             'hypervisor_hostname': self._nodename,
             'cpu_info': '?',
             'supported_instances': jsonutils.dumps([
-                    ('i686', 'docker', 'lxc'),
+                ('i686', 'docker', 'lxc'),
                     ('x86_64', 'docker', 'lxc')
                 ])
         }
