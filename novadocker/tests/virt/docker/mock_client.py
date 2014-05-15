@@ -30,7 +30,7 @@ class MockClient(object):
                                 {'container_config': {'Cmd': 'echo Test'}},
                                 'image_without_cmd':
                                 {'container_config': {'Cmd': None}},
-                           }
+                            }
         self._pulled_images = {}
 
     def _fake_id(self):
