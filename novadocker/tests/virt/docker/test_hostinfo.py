@@ -57,8 +57,8 @@ class HostInfoTestCase(test.NoDBTestCase):
     def test_find_cgroup_devices_path_centos(self, mock):
         mock.return_value = [
             'none /sys/fs/cgroup cgroup rw,relatime,perf_event,'
-                'blkio,net_cls,freezer,devices,memory,cpuacct,cpu,'
-                'cpuset 0 0']
+            'blkio,net_cls,freezer,devices,memory,cpuacct,cpu,'
+            'cpuset 0 0']
         path = hostinfo.get_cgroup_devices_path()
         self.assertEqual('/sys/fs/cgroup', path)
 
