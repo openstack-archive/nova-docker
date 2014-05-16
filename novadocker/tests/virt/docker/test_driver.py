@@ -77,7 +77,7 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         self.assertFalse(self.connection.capabilities['has_imagecache'])
         self.assertFalse(self.connection.capabilities['supports_recreate'])
 
-    #NOTE(bcwaldon): This exists only because _get_running_instance on the
+    # NOTE(bcwaldon): This exists only because _get_running_instance on the
     # base class will not let us set a custom disk/container_format.
     def _get_running_instance(self, obj=False, image_name=None, flavor=None):
         instance_ref = utils.get_test_instance(obj=obj, flavor=flavor)
@@ -90,7 +90,8 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         if image_name:
             image_info['name'] = image_name
         self.connection.spawn(self.ctxt, jsonutils.to_primitive(instance_ref),
-                image_info, [], 'herp', network_info=network_info)
+                              image_info, [], 'herp',
+                              network_info=network_info)
         return instance_ref, network_info
 
     def test_get_host_stats(self):
@@ -203,7 +204,8 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
                        'unplug_vifs')
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
-                '_find_container_by_name', return_value={'id': 'fake_id'})
+                       '_find_container_by_name',
+                       return_value={'id': 'fake_id'})
     def test_destroy_container(self, byname_mock, unplug_mock, teardown_mock):
         instance = utils.get_test_instance()
         self.connection.destroy(self.context, instance, 'fake_networkinfo')
@@ -260,9 +262,10 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
             self.assertEqual(pid, '12345')
 
     @mock.patch.object(novadocker.tests.virt.docker.mock_client.MockClient,
-                'push_repository')
+                       'push_repository')
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
-                '_find_container_by_name', return_value={'id': 'fake_id'})
+                       '_find_container_by_name',
+                       return_value={'id': 'fake_id'})
     def test_snapshot(self, byname_mock, repopush_mock):
         # Use mix-case to test that mixed-case image names succeed.
         snapshot_name = 'tEsT-SnAp'
@@ -270,11 +273,11 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         expected_calls = [
             {'args': (),
              'kwargs':
-                 {'task_state': task_states.IMAGE_PENDING_UPLOAD}},
+             {'task_state': task_states.IMAGE_PENDING_UPLOAD}},
             {'args': (),
              'kwargs':
-                 {'task_state': task_states.IMAGE_UPLOADING,
-                  'expected_state': task_states.IMAGE_PENDING_UPLOAD}}]
+             {'task_state': task_states.IMAGE_UPLOADING,
+              'expected_state': task_states.IMAGE_PENDING_UPLOAD}}]
         func_call_matcher = matchers.FunctionCallMatcher(expected_calls)
 
         instance_ref = utils.get_test_instance()
@@ -291,7 +294,7 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         recv_meta = image_service.create(context, sent_meta)
 
         self.connection.snapshot(self.context, instance_ref, recv_meta['id'],
-                      func_call_matcher.call)
+                                 func_call_matcher.call)
 
         (repopush_calls, repopush_kwargs) = repopush_mock.call_args
         repo = repopush_calls[0]

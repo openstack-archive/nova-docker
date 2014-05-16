@@ -27,10 +27,11 @@ class MockClient(object):
 
         # Fake repository
         self._repository = {'image_with_cmd':
-                                {'container_config': {'Cmd': 'echo Test'}},
-                                'image_without_cmd':
-                                {'container_config': {'Cmd': None}},
-                           }
+                            {'container_config':
+                             {'Cmd': 'echo Test'}},
+                            'image_without_cmd':
+                            {'container_config':
+                             {'Cmd': None}}}
         self._pulled_images = {}
 
     def _fake_id(self):
