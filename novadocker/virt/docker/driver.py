@@ -190,7 +190,7 @@ class DockerDriver(driver.ComputeDriver):
             'supported_instances': jsonutils.dumps([
                     ('i686', 'docker', 'lxc'),
                     ('x86_64', 'docker', 'lxc')
-                ])
+            ])
         }
         return stats
 
