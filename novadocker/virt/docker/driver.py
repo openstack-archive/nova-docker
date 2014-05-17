@@ -252,6 +252,10 @@ class DockerDriver(driver.ComputeDriver):
 
         if not (image and image['container_config']['Cmd']):
             args['Cmd'] = ['sh']
+        # Glance command-line overrides any set in the Docker image
+        if (image_meta and
+                image_meta.get('properties', {}).get('os_command_line')):
+            args['Cmd'] = image_meta['properties'].get('os_command_line')
 
         container_id = self._create_container(instance, args)
         if not container_id:
