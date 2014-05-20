@@ -140,10 +140,23 @@ class DockerDriver(driver.ComputeDriver):
         if not container:
             raise exception.InstanceNotFound(instance_id=instance['name'])
         running = container['State'].get('Running')
+        mem = container['Config'].get('Memory')
+
+        # NOTE(ewindisch): cgroups/lxc defaults to 1024 multiplier.
+        #                  see: _get_cpu_shares for further explaination
+        num_cpu = container['Config'].get('CpuShares') / 1024
+
+        # FIXME(ewindisch): Improve use of statistics:
+        #                   For 'mem', we should expose memory.stat.rss, and
+        #                   for cpu_time we should expose cpuacct.stat.system,
+        #                   but these aren't yet exposed by Docker.
+        #
+        #                   Also see:
+        #                    docker/docs/sources/articles/runmetrics.md
         info = {
-            'max_mem': 0,
-            'mem': 0,
-            'num_cpu': 1,
+            'max_mem': mem,
+            'mem': mem,
+            'num_cpu': num_cpu,
             'cpu_time': 0
         }
         info['state'] = power_state.RUNNING if running \
