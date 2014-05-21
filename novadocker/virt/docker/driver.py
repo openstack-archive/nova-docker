@@ -252,6 +252,21 @@ class DockerDriver(driver.ComputeDriver):
         image = self.docker.inspect_image(image_name)
         return image
 
+    def _start_container(self, instance, network_info=None):
+        container_id = self._find_container_by_name(instance['name']).get('id')
+        if not container_id:
+            return
+
+        self.docker.start_container(container_id)
+        try:
+            self.plug_vifs(instance, network_info)
+        except Exception as e:
+            msg = _('Cannot setup network: {0}')
+            self.docker.kill_container(container_id)
+            self.docker.destroy_container(container_id)
+            raise exception.InstanceDeployFailure(msg.format(e),
+                                                  instance_id=instance['name'])
+
     def spawn(self, context, instance, image_meta, injected_files,
               admin_password, network_info=None, block_device_info=None):
         image_name = self._get_image_name(context, instance, image_meta)
@@ -281,22 +296,24 @@ class DockerDriver(driver.ComputeDriver):
                 _('Cannot create container'),
                 instance_id=instance['name'])
 
-        self.docker.start_container(container_id)
-        try:
-            self.plug_vifs(instance, network_info)
-        except Exception as e:
-            msg = _('Cannot setup network: {0}')
-            self.docker.kill_container(container_id)
-            self.docker.destroy_container(container_id)
-            raise exception.InstanceDeployFailure(msg.format(e),
-                                                  instance_id=instance['name'])
+        self._start_container(instance, network_info)
 
-    def destroy(self, context, instance, network_info, block_device_info=None,
-                destroy_disks=True):
+    def restore(self, instance):
+        container_id = self._find_container_by_name(instance['name']).get('id')
+        if not container_id:
+            return
+
+        self._start_container(instance)
+
+    def soft_delete(self, instance):
         container_id = self._find_container_by_name(instance['name']).get('id')
         if not container_id:
             return
         self.docker.stop_container(container_id)
+
+    def destroy(self, context, instance, network_info, block_device_info=None,
+                destroy_disks=True):
+        self.soft_delete(instance)
         self.cleanup(context, instance, network_info,
                      block_device_info, destroy_disks)
 
