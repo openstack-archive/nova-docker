@@ -283,14 +283,18 @@ class DockerDriver(driver.ComputeDriver):
         if not container_id:
             return
         self.docker.stop_container(container_id)
-        self.docker.destroy_container(container_id)
-        network.teardown_network(container_id)
-        self.unplug_vifs(instance, network_info)
+        self.cleanup(context, instance, network_info,
+                     block_device_info, destroy_disks)
 
     def cleanup(self, context, instance, network_info, block_device_info=None,
                 destroy_disks=True):
         """Cleanup after instance being destroyed by Hypervisor."""
-        pass
+        container_id = self._find_container_by_name(instance['name']).get('id')
+        if not container_id:
+            return
+        self.docker.destroy_container(container_id)
+        network.teardown_network(container_id)
+        self.unplug_vifs(instance, network_info)
 
     def reboot(self, context, instance, network_info, reboot_type,
                block_device_info=None, bad_volumes_callback=None):
