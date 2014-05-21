@@ -200,16 +200,27 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
                           self.test_create_container,
                           image_info, instance_href)
 
+    @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
+                       'cleanup')
+    @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
+                       '_find_container_by_name',
+                       return_value={'id': 'fake_id'})
+    def test_destroy_container(self, byname_mock, cleanup_mock):
+        instance = utils.get_test_instance()
+        self.connection.destroy(self.context, instance, 'fake_networkinfo')
+        cleanup_mock.assert_called_with(self.context, instance,
+                                        'fake_networkinfo', None, True)
+
     @mock.patch.object(network, 'teardown_network')
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
                        'unplug_vifs')
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
                        '_find_container_by_name',
                        return_value={'id': 'fake_id'})
-    def test_destroy_container(self, byname_mock, unplug_mock, teardown_mock):
+    def test_cleanup_container(self, byname_mock, unplug_mock, teardown_mock):
         instance = utils.get_test_instance()
-        self.connection.destroy(self.context, instance, 'fake_networkinfo')
-        byname_mock.assert_called_once_with(instance['name'])
+        self.connection.cleanup(self.context, instance, 'fake_networkinfo')
+        byname_mock.assert_called_with(instance['name'])
         teardown_mock.assert_called_with('fake_id')
 
     def test_get_memory_limit_from_sys_meta_in_object(self):
