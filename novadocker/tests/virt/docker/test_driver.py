@@ -223,6 +223,25 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         byname_mock.assert_called_with(instance['name'])
         teardown_mock.assert_called_with('fake_id')
 
+    def test_soft_delete_restore_container(self):
+        instance_href = utils.get_test_instance()
+        image_info = utils.get_test_image_info(None, instance_href)
+        image_info['disk_format'] = 'raw'
+        image_info['container_format'] = 'docker'
+
+        self.connection.spawn(self.context, instance_href, image_info,
+                              'fake_files', 'fake_password')
+        container_id = self.connection._find_container_by_name(
+            instance_href['name']).get('id')
+
+        self.connection.soft_delete(instance_href)
+        info = self.connection.docker.inspect_container(container_id)
+        self.assertFalse(info['State']['Running'])
+
+        self.connection.restore(instance_href)
+        info = self.connection.docker.inspect_container(container_id)
+        self.assertTrue(info['State']['Running'])
+
     def test_get_memory_limit_from_sys_meta_in_object(self):
         instance = utils.get_test_instance(obj=True)
         limit = self.connection._get_memory_limit_bytes(instance)
