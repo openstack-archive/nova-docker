@@ -194,8 +194,9 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
     def test_unplug_vifs_ovs(self):
         iface_id = '920be2f4-2b98-411e-890a-69bcabb2a5a0'
         calls = [
-            mock.call('ovs-vsctl', '--timeout=120', 'del-port', 'br-int',
-                      'tap920be2f4-2b', run_as_root=True)
+            mock.call('ovs-vsctl', '--timeout=120', '--', '--if-exists',
+                      'del-port', 'br-int', 'tap920be2f4-2b',
+                      run_as_root=True)
         ]
         network_info = [
             {'network': {'bridge': 'br-int',
