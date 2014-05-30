@@ -310,6 +310,14 @@ class DockerDriver(driver.ComputeDriver):
         if not container_id:
             return
         self.docker.start_container(container_id)
+        try:
+            self.plug_vifs(instance, network_info)
+        except Exception as e:
+            msg = _('Cannot setup network: {0}')
+            self.docker.kill_container(container_id)
+            self.docker.destroy_container(container_id)
+            raise exception.InstanceDeployFailure(msg.format(e),
+                                                  instance_id=instance['name'])
 
     def power_off(self, instance):
         container_id = self._find_container_by_name(instance['name']).get('id')
