@@ -76,8 +76,9 @@ class DockerDriver(driver.ComputeDriver):
 
     def init_host(self, host):
         if self._is_daemon_running() is False:
-            raise exception.NovaException(_('Docker daemon is not running or '
-                'is not reachable (check the rights on /var/run/docker.sock)'))
+            raise exception.NovaException(
+                _('Docker daemon is not running or is not reachable'
+                  ' (check the rights on /var/run/docker.sock)'))
 
         self._registry_port = self._get_registry_port()
 
@@ -188,9 +189,9 @@ class DockerDriver(driver.ComputeDriver):
             'hypervisor_hostname': self._nodename,
             'cpu_info': '?',
             'supported_instances': jsonutils.dumps([
-                    ('i686', 'docker', 'lxc'),
-                    ('x86_64', 'docker', 'lxc')
-                ])
+                ('i686', 'docker', 'lxc'),
+                ('x86_64', 'docker', 'lxc')
+            ])
         }
         return stats
 
@@ -221,7 +222,7 @@ class DockerDriver(driver.ComputeDriver):
         if fmt != 'docker':
             msg = _('Image container format not supported ({0})')
             raise exception.InstanceDeployFailure(msg.format(fmt),
-                instance_id=instance['name'])
+                                                  instance_id=instance['name'])
         return '{0}:{1}/{2}'.format(CONF.my_ip,
                                     self._registry_port,
                                     image['name'].lower())
@@ -278,7 +279,7 @@ class DockerDriver(driver.ComputeDriver):
                                                   instance_id=instance['name'])
 
     def destroy(self, context, instance, network_info, block_device_info=None,
-            destroy_disks=True):
+                destroy_disks=True):
         container_id = self._find_container_by_name(instance['name']).get('id')
         if not container_id:
             return
