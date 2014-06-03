@@ -160,6 +160,20 @@ class DockerHTTPClient(object):
             body='{}')
         return (resp.code == 200)
 
+    def pause_container(self, container_id):
+        resp = self.make_request(
+            'POST',
+            '/v1.12/containers/{0}/pause'.format(container_id),
+            body='{}')
+        return (resp.code == 200)
+
+    def unpause_container(self, container_id):
+        resp = self.make_request(
+            'POST',
+            '/v1.12/containers/{0}/unpause'.format(container_id),
+            body='{}')
+        return (resp.code == 200)
+
     def inspect_image(self, image_name):
         resp = self.make_request(
             'GET',

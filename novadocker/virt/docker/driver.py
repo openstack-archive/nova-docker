@@ -325,6 +325,34 @@ class DockerDriver(driver.ComputeDriver):
             return
         self.docker.stop_container(container_id)
 
+    def pause(self, instance):
+        """Pause the specified instance.
+
+        :param instance: nova.objects.instance.Instance
+        """
+        try:
+            container_id = self._find_container_by_name(instance['name']).get('id')
+            if not self.docker.pause_container(container_id):
+                raise Exception
+        except Exception as e:
+            msg = _('Cannot pause container: {0}')
+            raise exception.NovaException(msg.format(e),
+                                                  instance_id=instance['name'])
+
+    def unpause(self, instance):
+        """Unpause paused VM instance.
+
+        :param instance: nova.objects.instance.Instance
+        """
+        try:
+            container_id = self._find_container_by_name(instance['name']).get('id')
+            if not self.docker.unpause_container(container_id):
+                raise Exception
+        except Exception as e:
+            msg = _('Cannot unpause container: {0}')
+            raise exception.NovaException(msg.format(e),
+                                                  instance_id=instance['name'])
+
     def get_console_output(self, context, instance):
         container_id = self._find_container_by_name(instance.name).get('id')
         if not container_id:
