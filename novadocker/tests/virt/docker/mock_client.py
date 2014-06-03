@@ -175,6 +175,20 @@ class MockClient(object):
         del self._containers[container_id]
         return True
 
+    def unpause_container(self, container_id):
+        if container_id not in self._containers:
+            return False
+
+        self._containers[container_id]['paused'] = False
+        return True
+ 
+    def pause_container(self, container_id):
+        if container_id not in self._containers:
+            return False
+
+        self._containers[container_id]['paused'] = True
+        return True
+   
     def pull_repository(self, name):
         image_name = self._image_name(name)
         if image_name in self._repository:
