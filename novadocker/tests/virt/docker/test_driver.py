@@ -60,9 +60,6 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
                        '_get_registry_port',
                        fake_get_registry_port)
 
-        self.stubs.Set(novadocker.virt.docker.hostinfo,
-                       'get_meminfo', stubs.get_meminfo)
-
         # Note: using mock.object.path on class throws
         # errors in test_virt_drivers
         def fake_teardown_network(container_id):
@@ -107,7 +104,6 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
     def test_get_available_resource(self):
         memory = {
             'total': 4 * units.Mi,
-            'free': 3 * units.Mi,
             'used': 1 * units.Mi
         }
         disk = {
