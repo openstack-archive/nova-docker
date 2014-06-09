@@ -18,7 +18,6 @@ import posix
 import mock
 
 from nova import test
-from novadocker.tests.virt.docker import stubs
 from novadocker.virt.docker import hostinfo
 
 
@@ -26,7 +25,6 @@ class HostInfoTestCase(test.NoDBTestCase):
 
     def setUp(self):
         super(HostInfoTestCase, self).setUp()
-        self.stubs.Set(hostinfo, 'get_meminfo', stubs.get_meminfo)
         self.stubs.Set(hostinfo, 'statvfs', self.statvfs)
 
     def statvfs(self):
@@ -40,18 +38,23 @@ class HostInfoTestCase(test.NoDBTestCase):
         self.assertEqual(disk_usage['available'], 27935518720)
         self.assertEqual(disk_usage['used'], 11121963008)
 
-    def test_parse_meminfo(self):
-        meminfo = hostinfo.parse_meminfo()
-        self.assertEqual(meminfo['memtotal'], 1043234816)
-        self.assertEqual(meminfo['memfree'], 225341440)
-        self.assertEqual(meminfo['cached'], 64884736)
-        self.assertEqual(meminfo['buffers'], 22159360)
-
     def test_get_memory_usage(self):
-        usage = hostinfo.get_memory_usage()
-        self.assertEqual(usage['total'], 1043234816)
-        self.assertEqual(usage['used'], 730849280)
-        self.assertEqual(usage['free'], 312385536)
+        meminfo_str = """MemTotal:        1018784 kB
+MemFree:         220060 kB
+Buffers:           21640 kB
+Cached:           63364 kB
+SwapCached:            0 kB
+Active:           13988 kB
+Inactive:         50616 kB
+"""
+        with mock.patch('__builtin__.open',
+                        mock.mock_open(read_data=meminfo_str),
+                        create=True) as m:
+
+            usage = hostinfo.get_memory_usage()
+            m.assert_called_once_with('/proc/meminfo')
+            self.assertEqual(usage['total'], 1043234816)
+            self.assertEqual(usage['used'], 730849280)
 
     @mock.patch('novadocker.virt.docker.hostinfo.get_mounts')
     def test_find_cgroup_devices_path_centos(self, mock):
