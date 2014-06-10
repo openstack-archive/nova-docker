@@ -79,8 +79,6 @@ class DockerGenericVIFDriver(object):
         if_local_name = 'tap%s' % vif['id'][:11]
         if_remote_name = 'ns%s' % vif['id'][:11]
         bridge = vif['network']['bridge']
-        gateway = network.find_gateway(instance, vif['network'])
-        ip = network.find_fixed_ip(instance, vif['network'])
 
         # Device already exists so return.
         if linux_net.device_exists(if_local_name):

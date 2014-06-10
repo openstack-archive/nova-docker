@@ -228,7 +228,7 @@ class DockerHTTPClient(object):
 
     def load_repository(self, name, data):
         url = '/v1.13/images/load'
-        resp = self.make_request('POST', url, data)
+        self.make_request('POST', url, data)
 
     def load_repository_file(self, name, path):
         with open(path) as fh:
