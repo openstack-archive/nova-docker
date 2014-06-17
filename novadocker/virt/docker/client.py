@@ -28,8 +28,9 @@ LOG = logging.getLogger(__name__)
 
 
 def filter_data(f):
-    """Decorator that post-processes data returned by Docker to avoid any
-       surprises with different versions of Docker
+    """Decorator that post-processes data returned by Docker.
+
+     This will avoid any surprises with different versions of Docker.
     """
     @functools.wraps(f)
     def wrapper(*args, **kwds):
