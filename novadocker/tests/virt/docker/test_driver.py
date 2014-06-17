@@ -75,8 +75,8 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
     def _get_running_instance(self, obj=False, image_name=None, flavor=None):
         instance_ref = utils.get_test_instance(obj=obj, flavor=flavor)
         network_info = utils.get_test_network_info()
-        network_info[0]['network']['subnets'][0]['meta']['dhcp_server'] = \
-            '1.1.1.1'
+        network_info[0]['network']['subnets'][0]['meta']['dhcp_server'] = (
+            '1.1.1.1')
         image_info = utils.get_test_image_info(None, instance_ref)
         image_info['disk_format'] = 'raw'
         image_info['container_format'] = 'docker'
