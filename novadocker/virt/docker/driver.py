@@ -73,6 +73,10 @@ docker_opts = [
                default='$instances_path/snapshots',
                help='Location where docker driver will temporarily store '
                     'snapshots.')
+    cfg.StrOpt('volume_driver',
+               default='novadocker.virt.docker.'
+               'volume_driver.DockerVolumeDriver',
+               help='Docker volume driver.')
 ]
 
 CONF.register_opts(docker_opts, 'docker')
@@ -86,6 +90,8 @@ class DockerDriver(driver.ComputeDriver):
     def __init__(self, virtapi):
         super(DockerDriver, self).__init__(virtapi)
         self._docker = None
+        self.volume_driver = importutils.import_object(
+            CONF.docker.volume_driver, virtapi)
         vif_class = importutils.import_class(CONF.docker.vif_driver)
         self.vif_driver = vif_class()
         self.firewall_driver = firewall.load_driver(
@@ -233,6 +239,30 @@ class DockerDriver(driver.ComputeDriver):
     def _get_container_id(self, instance):
         return self._find_container_by_name(instance['name']).get('id')
 
+    def get_volume_connector(self, instance):
+        return self.volume_driver.get_volume_connector(instance)
+
+    def attach_volume(self, context, connection_info, instance, mountpoint,
+                      disk_bus=None, device_type=None, encryption=None):
+        container_id = self._find_container_by_name(instance['name']).get('id')
+        if not container_id:
+            return
+
+        # This attaches the volume to the host system.
+        self.volume_driver.attach_volume(connection_info, instance, mountpoint,
+                                         container_id)
+
+    def detach_volume(self, connection_info, instance, mountpoint,
+                      encryption=None):
+        container_id = self._find_container_by_name(instance['name']).get('id')
+        if not container_id:
+            return
+
+        # Remove from the host.
+        return self.volume_driver.detach_volume(connection_info,
+                                                instance, mountpoint,
+                                                container_id)
+
     def get_info(self, instance):
         container = self._find_container_by_name(instance['name'])
         if not container:
@@ -260,6 +290,10 @@ class DockerDriver(driver.ComputeDriver):
         info['state'] = (power_state.RUNNING if running
                          else power_state.SHUTDOWN)
         return info
+
+    @staticmethod
+    def get_host_ip_addr():
+        return CONF.my_ip
 
     def get_host_stats(self, refresh=False):
         hostname = socket.gethostname()

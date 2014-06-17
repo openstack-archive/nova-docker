@@ -48,6 +48,15 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         def fake_plug_vifs(self, instance, network_info):
             return
 
+        def fake_attach_volume(self, context, connection_info, instance,
+                               mountpoint, disk_bus=None, device_type=None,
+                               encryption=None):
+            return
+
+        def fake_detach_volume(self, connection_info, instance, mountpoint,
+                               encryption=None):
+            return
+
         self.stubs.Set(novadocker.virt.docker.driver.DockerDriver,
                        'plug_vifs',
                        fake_plug_vifs)
@@ -58,6 +67,17 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         self.stubs.Set(novadocker.virt.docker.driver.DockerDriver,
                        '_attach_vifs',
                        fake_attach_vifs)
+
+        self.stubs.Set(novadocker.virt.docker.driver.DockerDriver,
+                       'attach_volume',
+                       fake_attach_volume)
+
+        self.stubs.Set(novadocker.virt.docker.driver.DockerDriver,
+                       'detach_volume',
+                       fake_detach_volume)
+
+        self.stubs.Set(novadocker.virt.docker.hostinfo,
+                       'get_meminfo', stubs.get_meminfo)
 
         # Note: using mock.object.path on class throws
         # errors in test_virt_drivers
