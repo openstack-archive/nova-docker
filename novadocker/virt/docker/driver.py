@@ -169,8 +169,8 @@ class DockerDriver(driver.ComputeDriver):
             'num_cpu': num_cpu,
             'cpu_time': 0
         }
-        info['state'] = power_state.RUNNING if running \
-            else power_state.SHUTDOWN
+        info['state'] = (power_state.RUNNING if running
+                         else power_state.SHUTDOWN)
         return info
 
     def get_host_stats(self, refresh=False):

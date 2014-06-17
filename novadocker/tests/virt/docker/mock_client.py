@@ -39,18 +39,13 @@ class MockClient(object):
         return uuid.uuid4().hex + uuid.uuid4().hex
 
     def _image_name(self, image_name):
-        """Split full image name to host and image name
-        """
+        """Split full image name to host and image name."""
         if '/' in image_name:
             host, image_name = image_name.split('/', 1)
         return image_name
 
     def _is_image_exists(self, image_name):
-        """Images not listed in self._repository are
-        presumed existing by default.
-        Images listed in self._repository need to be
-        pulled before inspecting or spawning.
-        """
+        """Check whether Images is listed in self._repository."""
         image_name = self._image_name(image_name)
         if image_name in self._repository:
             return image_name in self._images
@@ -221,8 +216,8 @@ class MockClient(object):
             'Fusce nec pellentesque nisl.'])
 
     def get_image(self, name):
-        if name not in self._images or \
-           name not in self._image_data:
+        if (name not in self._images or
+           name not in self._image_data):
             raise Exception
         return self._image_data[name]
 
