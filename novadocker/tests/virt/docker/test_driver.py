@@ -78,8 +78,8 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
     def _get_running_instance(self, obj=False, image_name=None, flavor=None):
         instance_ref = utils.get_test_instance(obj=obj, flavor=flavor)
         network_info = utils.get_test_network_info()
-        network_info[0]['network']['subnets'][0]['meta']['dhcp_server'] = \
-            '1.1.1.1'
+        network_info[0]['network']['subnets'][0]['meta']['dhcp_server'] = (
+            '1.1.1.1')
         image_info = utils.get_test_image_info(None, instance_ref)
         image_info['disk_format'] = 'raw'
         image_info['container_format'] = 'docker'
@@ -324,7 +324,7 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
                                  func_call_matcher.call)
 
         snapshot = image_service.show(context, recv_meta['id'])
-        #self.assertIsNone(func_call_matcher.match())
+        # self.assertIsNone(func_call_matcher.match())
         self.assertEqual(snapshot['properties']['image_state'], 'available')
         self.assertEqual(snapshot['status'], 'active')
         self.assertEqual(snapshot['disk_format'], 'raw')
@@ -339,7 +339,7 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         repo = self.connection._get_image_name(self.context,
                                                instance_ref, image_info)
 
-        #image_name = repo.split("/")[1]
+        # image_name = repo.split("/")[1]
         self.assertEqual(image_info['name'], repo)
 
     def test_get_host_uptime_returns_exec_result(self):
