@@ -461,11 +461,11 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.VerifyAll()
 
-    #def test_get_image_bad_return_code(self):
-    #    pass
+    # def test_get_image_bad_return_code(self):
+    #     pass
 
-    #def test_save_repository_file(self):
-    #    docker_client.save_repository_file(name, path)
+    # def test_save_repository_file(self):
+    #     docker_client.save_repository_file(name, path)
 
     def test_load_repository(self):
         mock_conn = self.mox.CreateMockAnything()
@@ -481,9 +481,9 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         client = docker_client.DockerHTTPClient(mock_conn)
         client.load_repository('XXX', data)
-        #self.assertIsNone(logs)
+        # self.assertIsNone(logs)
 
         self.mox.VerifyAll()
 
-    #def test_load_repository_file(self);
-    #    docker_client.load_repository_file(name, path)
+    # def test_load_repository_file(self);
+    #     docker_client.load_repository_file(name, path)
