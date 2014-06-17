@@ -174,6 +174,24 @@ class DockerHTTPClient(object):
             body='{}')
         return (resp.code == 204)
 
+    def device_add(self, container_id, device):
+        LOG.debug("device_add called with container id %s and device %s" % (
+            container_id, device))
+
+        url = '/v1.12/containers/{0}/devadd?device={1}'.format(container_id,
+                                                           device)
+        resp = self.make_request('POST', url)
+        return (resp.code == 204)
+
+    def device_remove(self, container_id, device):
+        LOG.debug("device_remove called with container id %s and device %s" % (
+            container_id, device))
+
+        url = '/v1.12/containers/{0}/devrm?device={1}'.format(container_id,
+                                                           device)
+        resp = self.make_request('POST', url)
+        return (resp.code == 204)
+
     def inspect_image(self, image_name):
         resp = self.make_request(
             'GET',
