@@ -40,21 +40,23 @@ from novadocker.virt.docker import hostinfo
 from novadocker.virt.docker import network
 from novadocker.virt import hostutils
 
+CONF = cfg.CONF
+CONF.import_opt('my_ip', 'nova.netconf')
 
 docker_opts = [
-    cfg.IntOpt('registry_default_port',
+    cfg.IntOpt('registry_port',
                default=5042,
-               help=_('Default TCP port to find the '
-                      'docker-registry container'),
+               help=_('Docker registry TCP port'),
                deprecated_group='DEFAULT',
                deprecated_name='docker_registry_default_port'),
+    cfg.StrOpt('registry_ip',
+               default=CONF.my_ip,
+               help=_('Docker registry IP address')),
     cfg.StrOpt('vif_driver',
                default='novadocker.virt.docker.vifs.DockerGenericVIFDriver')
 ]
 
-CONF = cfg.CONF
 CONF.register_opts(docker_opts, 'docker')
-CONF.import_opt('my_ip', 'nova.netconf')
 
 LOG = log.getLogger(__name__)
 
@@ -80,7 +82,8 @@ class DockerDriver(driver.ComputeDriver):
                 _('Docker daemon is not running or is not reachable'
                   ' (check the rights on /var/run/docker.sock)'))
 
-        self._registry_port = self._get_registry_port()
+        self._registry_port = CONF.docker.registry_ip
+        self._registry_ip = CONF.docker.registry_port
 
     def _is_daemon_running(self):
         try:
@@ -236,7 +239,7 @@ class DockerDriver(driver.ComputeDriver):
             msg = _('Image container format not supported ({0})')
             raise exception.InstanceDeployFailure(msg.format(fmt),
                                                   instance_id=instance['name'])
-        return '{0}:{1}/{2}'.format(CONF.my_ip,
+        return '{0}:{1}/{2}'.format(self._registry_ip,
                                     self._registry_port,
                                     image['name'].lower())
 
@@ -393,25 +396,6 @@ class DockerDriver(driver.ComputeDriver):
             return
         return self.docker.get_container_logs(container_id)
 
-    def _get_registry_port(self):
-        default_port = CONF.docker.registry_default_port
-        registry = None
-        for container in self.docker.list_containers(_all=False):
-            container = self.docker.inspect_container(container['id'])
-            if 'docker-registry' in container.get('Path'):
-                registry = container
-                break
-        if not registry:
-            return default_port
-        # NOTE(samalba): The registry service always binds on port 5000 in the
-        # container
-        try:
-            return container['NetworkSettings']['PortMapping']['Tcp']['5000']
-        except (KeyError, TypeError):
-            # NOTE(samalba): Falling back to a default port allows more
-            # flexibility (run docker-registry outside a container)
-            return default_port
-
     def snapshot(self, context, instance, image_href, update_task_state):
         container_id = self._find_container_by_name(instance['name']).get('id')
         if not container_id:
@@ -422,7 +406,7 @@ class DockerDriver(driver.ComputeDriver):
         image = image_service.show(context, image_id)
         name = image['name'].lower()
         default_tag = (':' not in name)
-        name = '{0}:{1}/{2}'.format(CONF.my_ip,
+        name = '{0}:{1}/{2}'.format(self._registry_ip,
                                     self._registry_port,
                                     name)
         commit_name = name if not default_tag else name + ':latest'
