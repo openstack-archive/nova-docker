@@ -82,8 +82,8 @@ class DockerDriver(driver.ComputeDriver):
                 _('Docker daemon is not running or is not reachable'
                   ' (check the rights on /var/run/docker.sock)'))
 
-        self._registry_port = CONF.docker.registry_ip
-        self._registry_ip = CONF.docker.registry_port
+        self._registry_port = CONF.docker.registry_port
+        self._registry_ip = CONF.docker.registry_ip
 
     def _is_daemon_running(self):
         try:
