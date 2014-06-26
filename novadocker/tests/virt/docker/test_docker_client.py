@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
 import uuid
 
 import mox
@@ -523,3 +524,53 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
         self.assertIsNone(logs)
 
         self.mox.VerifyAll()
+
+    def test_get_image(self):
+        mock_conn = self.mox.CreateMockAnything()
+
+        image_id = 'XXX'
+        data = ["hello world"]
+
+        url = '/v1.13/images/{0}/get'.format(image_id)
+        mock_conn.request('GET', url,
+                          headers={'Content-Type': 'application/json'})
+        response = FakeResponse(201, data)
+        mock_conn.getresponse().AndReturn(response)
+
+        self.mox.ReplayAll()
+
+        client = docker_client.DockerHTTPClient(mock_conn)
+        image = client.get_image(image_id)
+        self.assertIsInstance(image, collections.Iterable)
+
+        # Only calling the generator will trigger the GET request.
+        next(image)
+
+        self.mox.VerifyAll()
+
+    #def test_get_image_bad_return_code(self):
+    #    pass
+
+    #def test_save_repository_file(self):
+    #    docker_client.save_repository_file(name, path)
+
+    def test_load_repository(self):
+        mock_conn = self.mox.CreateMockAnything()
+
+        data = ["hello", "world"]
+        url = '/v1.13/images/load'
+        mock_conn.request('POST', url, data,
+                          headers={'Content-Type': 'application/json'})
+        response = FakeResponse(200)
+        mock_conn.getresponse().AndReturn(response)
+
+        self.mox.ReplayAll()
+
+        client = docker_client.DockerHTTPClient(mock_conn)
+        client.load_repository('XXX', data)
+        #self.assertIsNone(logs)
+
+        self.mox.VerifyAll()
+
+    #def test_load_repository_file(self);
+    #    docker_client.load_repository_file(name, path)

@@ -32,7 +32,8 @@ class MockClient(object):
                             'image_without_cmd':
                             {'container_config':
                              {'Cmd': None}}}
-        self._pulled_images = {}
+        self._images = {}
+        self._image_data = {}
 
     def _fake_id(self):
         return uuid.uuid4().hex + uuid.uuid4().hex
@@ -52,7 +53,7 @@ class MockClient(object):
         """
         image_name = self._image_name(image_name)
         if image_name in self._repository:
-            return image_name in self._pulled_images
+            return image_name in self._images
         return True
 
     def _is_daemon_running(self):
@@ -116,8 +117,8 @@ class MockClient(object):
             return None
 
         image_name = self._image_name(image_name)
-        if image_name in self._pulled_images:
-            return self._pulled_images[image_name]
+        if image_name in self._images:
+            return self._images[image_name]
         return {'container_config': {'Cmd': None}}
 
     @docker_client.filter_data
@@ -192,7 +193,7 @@ class MockClient(object):
     def pull_repository(self, name):
         image_name = self._image_name(name)
         if image_name in self._repository:
-            self._pulled_images[image_name] = self._repository[image_name]
+            self._images[image_name] = self._repository[image_name]
         return True
 
     def push_repository(self, name, headers=None):
@@ -218,3 +219,18 @@ class MockClient(object):
             'dapibus ornare massa. Nam ut hendrerit nunc. Interdum et ',
             'malesuada fames ac ante ipsum primis in faucibus. ',
             'Fusce nec pellentesque nisl.'])
+
+    def get_image(self, name):
+        if name not in self._images or \
+           name not in self._image_data:
+            raise Exception
+        return self._image_data[name]
+
+    def save_repository_file(self, name, path):
+        pass
+
+    def load_repository(self, name, data):
+        self._image_data[name] = data
+
+    def load_repository_file(self, name, path):
+        pass
