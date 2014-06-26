@@ -209,6 +209,31 @@ class DockerHTTPClient(object):
             '/v1.7/containers/{0}'.format(container_id))
         return (resp.code == 204)
 
+    def get_image(self, name):
+        parts = name.rsplit(':', 1)
+        url = '/v1.13/images/{0}/get'.format(parts[0])
+        resp = self.make_request('GET', url)
+        while True:
+            buf = resp.read(4096)
+            if not buf:
+                # Image pull completed
+                break
+            yield buf
+        return
+
+    def save_repository_file(self, name, path):
+        with open(path) as fh:
+            for part in self.get_image(name):
+                fh.write(part)
+
+    def load_repository(self, name, data):
+        url = '/v1.13/images/load'
+        resp = self.make_request('POST', url, data)
+
+    def load_repository_file(self, name, path):
+        with open(path) as fh:
+            self.load_repository(name, fh)
+
     def pull_repository(self, name):
         parts = name.rsplit(':', 1)
         url = '/v1.7/images/create?fromImage={0}'.format(parts[0])

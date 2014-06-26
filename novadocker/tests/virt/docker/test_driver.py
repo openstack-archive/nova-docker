@@ -285,11 +285,11 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
             self.assertEqual(pid, '12345')
 
     @mock.patch.object(novadocker.tests.virt.docker.mock_client.MockClient,
-                       'push_repository')
+                       'get_image')
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
                        '_find_container_by_name',
                        return_value={'id': 'fake_id'})
-    def test_snapshot(self, byname_mock, repopush_mock):
+    def test_snapshot(self, byname_mock, reposave_mock):
         # Use mix-case to test that mixed-case image names succeed.
         snapshot_name = 'tEsT-SnAp'
 
@@ -319,23 +319,15 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         self.connection.snapshot(self.context, instance_ref, recv_meta['id'],
                                  func_call_matcher.call)
 
-        (repopush_calls, repopush_kwargs) = repopush_mock.call_args
-        repo = repopush_calls[0]
+        if reposave_mock.call_args:
+            (reposave_args, reposave_kwargs) = reposave_mock.call_args
+            repo = reposave_args[0]
 
-        # Assure the image_href is correctly placed into the headers.
-        headers_image_href = repopush_kwargs.get('headers', {}).get(
-            'X-Meta-Glance-Image-Id')
-        self.assertEqual(recv_meta['id'], headers_image_href)
+            # That the lower-case snapshot name matches the name pushed
+            image_name = repo.split("/")[1]
+        else:
+            image_name = None
 
-        # Assure the repository name pushed into the docker registry is valid.
-        self.assertIn(str(self.connection._registry_ip) + ":" +
-                      str(self.connection._registry_port) + "/",
-                      repo)
-        self.assertEqual(repo.count(":"), 1)
-        self.assertEqual(repo.count("/"), 1)
-
-        # That the lower-case snapshot name matches the name pushed
-        image_name = repo.split("/")[1]
         self.assertEqual(snapshot_name.lower(), image_name)
 
     def test_get_image_name(self):
