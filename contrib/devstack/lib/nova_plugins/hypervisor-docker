@@ -34,13 +34,8 @@ DOCKER_DIR=$DEST/nova-docker
 
 DOCKER_UNIX_SOCKET=/var/run/docker.sock
 DOCKER_PID_FILE=/var/run/docker.pid
-DOCKER_REGISTRY_PORT=${DOCKER_REGISTRY_PORT:-5042}
 
-DOCKER_IMAGE=${DOCKER_IMAGE:-cirros:latest}
-DOCKER_IMAGE_NAME=$DEFAULT_IMAGE_NAME
-DOCKER_REGISTRY_IMAGE=${DOCKER_REGISTRY_IMAGE:-registry:0.6.9}
-DOCKER_REGISTRY_IMAGE_NAME=registry
-DOCKER_REPOSITORY_NAME=${SERVICE_HOST}:${DOCKER_REGISTRY_PORT}/${DOCKER_IMAGE_NAME}
+DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME:-${DEFAULT_IMAGE_NAME}}
 
 DOCKER_APT_REPO=${DOCKER_APT_REPO:-https://get.docker.io/ubuntu}
 
@@ -98,37 +93,19 @@ function start_nova_hypervisor {
     # push the rootwrap
     sudo cp $DOCKER_DIR/etc/nova/rootwrap.d/docker.filters  /etc/nova/rootwrap.d/docker.filters
 
-    # Start the Docker registry container
-    docker run -d -p ${DOCKER_REGISTRY_PORT}:5000 \
-        -e SETTINGS_FLAVOR=openstack -e OS_USERNAME=${OS_USERNAME} \
-        -e OS_PASSWORD=${OS_PASSWORD} -e OS_TENANT_NAME=${OS_TENANT_NAME} \
-        -e OS_GLANCE_URL="${SERVICE_PROTOCOL}://${GLANCE_HOSTPORT}" \
-        -e OS_AUTH_URL=${OS_AUTH_URL} \
-        --name $DOCKER_REGISTRY_IMAGE_NAME \
-        $DOCKER_REGISTRY_IMAGE
-
-    echo "Waiting for docker registry to start..."
-    DOCKER_REGISTRY=${SERVICE_HOST}:${DOCKER_REGISTRY_PORT}
-    if ! timeout $SERVICE_TIMEOUT sh -c "while ! curl -s $DOCKER_REGISTRY; do sleep 1; done"; then
-        die $LINENO "docker-registry did not start"
-    fi
-
-    # Tag image if not already tagged
-    if ! docker images | grep $DOCKER_REPOSITORY_NAME; then
-        docker tag $DOCKER_IMAGE_NAME $DOCKER_REPOSITORY_NAME
-    fi
-
-    # Make sure we copied the image in Glance
-    if ! (glance image-show "$DOCKER_IMAGE"); then
-        docker push $DOCKER_REPOSITORY_NAME
+    echo "Checking default image for docker..."
+    if ! (glance image-show "$DEFAULT_IMAGE_NAME"); then
+        echo "Pulling $DOCKER_IMAGE_NAME..."
+        docker pull $DOCKER_IMAGE_NAME
+        echo "Saving $DOCKER_IMAGE_NAME to glance..."
+        docker save $DOCKER_IMAGE_NAME | glance image-create --is-public=True --container-format=docker --disk-format=raw --name $DEFAULT_IMAGE_NAME
     fi
 }
 
 # stop_nova_hypervisor - Stop any external services
 function stop_nova_hypervisor {
-    # Stop the docker registry container
-    docker stop $DOCKER_REGISTRY_IMAGE_NAME
-    docker rm $DOCKER_REGISTRY_IMAGE_NAME
+    # Nothing to do here now.  We can leave docker running.
+    return 0
 }
 
 # Restore xtrace

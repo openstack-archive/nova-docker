@@ -23,10 +23,7 @@ if [[ $VIRT_DRIVER == "docker" ]]; then
 
   elif [[ $2 == "install" ]] ; then
 
-    # Install docker package and images
-    # * downloads a base busybox image and a glance registry image if necessary
-    # * install the images in Docker's image cache
-
+    # Install docker packages
 
     SERVICE_TIMEOUT=${SERVICE_TIMEOUT:-60}
 
@@ -62,15 +59,6 @@ if [[ $VIRT_DRIVER == "docker" ]]; then
     if ! timeout $SERVICE_TIMEOUT sh -c "$CONFIGURE_CMD"; then
       die $LINENO "docker did not start"
     fi
-
-    # Get guest container image
-    docker pull $DOCKER_IMAGE
-    docker tag $DOCKER_IMAGE $DOCKER_IMAGE_NAME
-
-    # Get docker-registry image
-    docker pull $DOCKER_REGISTRY_IMAGE
-    docker tag $DOCKER_REGISTRY_IMAGE $DOCKER_REGISTRY_IMAGE_NAME
-
   fi
 
 fi
