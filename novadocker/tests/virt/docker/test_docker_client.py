@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
 import uuid
 
 import mox
@@ -370,93 +371,6 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
         self.mox.VerifyAll()
 
-    def test_pull_repository(self):
-        mock_conn = self.mox.CreateMockAnything()
-
-        mock_conn.request('POST', '/v1.7/images/create?fromImage=ping',
-                          headers={'Content-Type': 'application/json'})
-        response = FakeResponse(200,
-                                headers={'Content-Type': 'application/json'})
-        mock_conn.getresponse().AndReturn(response)
-
-        self.mox.ReplayAll()
-
-        client = docker_client.DockerHTTPClient(mock_conn)
-        self.assertEqual(True, client.pull_repository('ping'))
-
-        self.mox.VerifyAll()
-
-    def test_pull_repository_tag(self):
-        mock_conn = self.mox.CreateMockAnything()
-
-        url = '/v1.7/images/create?fromImage=ping&tag=pong'
-        mock_conn.request('POST', url,
-                          headers={'Content-Type': 'application/json'})
-        response = FakeResponse(200,
-                                headers={'Content-Type': 'application/json'})
-        mock_conn.getresponse().AndReturn(response)
-
-        self.mox.ReplayAll()
-
-        client = docker_client.DockerHTTPClient(mock_conn)
-        self.assertEqual(True, client.pull_repository('ping:pong'))
-
-        self.mox.VerifyAll()
-
-    def test_pull_repository_bad_return_code(self):
-        mock_conn = self.mox.CreateMockAnything()
-
-        mock_conn.request('POST', '/v1.7/images/create?fromImage=ping',
-                          headers={'Content-Type': 'application/json'})
-        response = FakeResponse(400,
-                                headers={'Content-Type': 'application/json'})
-        mock_conn.getresponse().AndReturn(response)
-
-        self.mox.ReplayAll()
-
-        client = docker_client.DockerHTTPClient(mock_conn)
-        self.assertEqual(False, client.pull_repository('ping'))
-
-        self.mox.VerifyAll()
-
-    def test_push_repository(self):
-        mock_conn = self.mox.CreateMockAnything()
-
-        body = ('{"username":"foo","password":"bar",'
-                '"auth":"","email":"foo@bar.bar"}')
-        mock_conn.request('POST', '/v1.7/images/ping/push',
-                          headers={'Content-Type': 'application/json'},
-                          body=body)
-        response = FakeResponse(200,
-                                headers={'Content-Type': 'application/json'})
-        mock_conn.getresponse().AndReturn(response)
-
-        self.mox.ReplayAll()
-
-        client = docker_client.DockerHTTPClient(mock_conn)
-        self.assertEqual(True, client.push_repository('ping'))
-
-        self.mox.VerifyAll()
-
-    def test_push_repository_bad_return_code(self):
-        mock_conn = self.mox.CreateMockAnything()
-
-        body = ('{"username":"foo","password":"bar",'
-                '"auth":"","email":"foo@bar.bar"}')
-        mock_conn.request('POST', '/v1.7/images/ping/push',
-                          headers={'Content-Type': 'application/json'},
-                          body=body)
-        response = FakeResponse(400,
-                                headers={'Content-Type': 'application/json'})
-        mock_conn.getresponse().AndReturn(response)
-
-        self.mox.ReplayAll()
-
-        client = docker_client.DockerHTTPClient(mock_conn)
-        self.assertEqual(False, client.push_repository('ping'))
-
-        self.mox.VerifyAll()
-
     def test_commit_container(self):
         mock_conn = self.mox.CreateMockAnything()
 
@@ -523,3 +437,53 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
         self.assertIsNone(logs)
 
         self.mox.VerifyAll()
+
+    def test_get_image(self):
+        mock_conn = self.mox.CreateMockAnything()
+
+        image_id = 'XXX'
+        data = ["hello world"]
+
+        url = '/v1.13/images/{0}/get'.format(image_id)
+        mock_conn.request('GET', url,
+                          headers={'Content-Type': 'application/json'})
+        response = FakeResponse(201, data)
+        mock_conn.getresponse().AndReturn(response)
+
+        self.mox.ReplayAll()
+
+        client = docker_client.DockerHTTPClient(mock_conn)
+        image = client.get_image(image_id)
+        self.assertIsInstance(image, collections.Iterable)
+
+        # Only calling the generator will trigger the GET request.
+        next(image)
+
+        self.mox.VerifyAll()
+
+    #def test_get_image_bad_return_code(self):
+    #    pass
+
+    #def test_save_repository_file(self):
+    #    docker_client.save_repository_file(name, path)
+
+    def test_load_repository(self):
+        mock_conn = self.mox.CreateMockAnything()
+
+        data = ["hello", "world"]
+        url = '/v1.13/images/load'
+        mock_conn.request('POST', url, data,
+                          headers={'Content-Type': 'application/json'})
+        response = FakeResponse(200)
+        mock_conn.getresponse().AndReturn(response)
+
+        self.mox.ReplayAll()
+
+        client = docker_client.DockerHTTPClient(mock_conn)
+        client.load_repository('XXX', data)
+        #self.assertIsNone(logs)
+
+        self.mox.VerifyAll()
+
+    #def test_load_repository_file(self);
+    #    docker_client.load_repository_file(name, path)
