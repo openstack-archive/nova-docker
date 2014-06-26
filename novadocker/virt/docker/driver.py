@@ -35,6 +35,7 @@ from nova.openstack.common import log
 from nova.openstack.common import units
 from nova import utils
 from nova.virt import driver
+from nova.virt import images
 from novadocker.virt.docker import client as docker_client
 from novadocker.virt.docker import hostinfo
 from novadocker.virt.docker import network
@@ -243,15 +244,24 @@ class DockerDriver(driver.ComputeDriver):
                                     self._registry_port,
                                     image['name'].lower())
 
-    def _pull_missing_image(self, image_name, instance):
+    def _pull_missing_image(self, context, image_name, instance):
         msg = 'Image name "%s" does not exist, fetching it...'
         LOG.debug(msg % image_name)
-        res = self.docker.pull_repository(image_name)
-        if res is False:
-            msg = _('Cannot pull missing image "%s"')
-            raise exception.InstanceDeployFailure(
-                msg % instance['name'],
-                instance_id=instance['name'])
+
+        # TODO(ewindisch): create my own tempdir variable...
+        snapshot_directory = CONF.libvirt.snapshots_directory
+        fileutils.ensure_tree(snapshot_directory)
+        temporary_name = uuid.uuid4().hex
+        with utils.tempdir(dir=snapshot_directory) as tmpdir:
+            try:
+                out_path = os.path.join(tmpdir, temporary_name)
+
+                images.fetch(context, image_href, out_path, instance['user_id'], instance['project_id'])
+
+                self.docker.loads(image_name, out_path)
+            except Exception:
+                raise  # TODO(ewindisch): this is obviously bad. 
+
         image = self.docker.inspect_image(image_name)
         return image
 
@@ -284,7 +294,7 @@ class DockerDriver(driver.ComputeDriver):
         image = self.docker.inspect_image(image_name)
 
         if not image:
-            image = self._pull_missing_image(image_name, instance)
+            image = self._pull_missing_image(context, image_name, instance)
 
         if not (image and image['container_config']['Cmd']):
             args['Cmd'] = ['sh']
@@ -411,10 +421,12 @@ class DockerDriver(driver.ComputeDriver):
                                     name)
         commit_name = name if not default_tag else name + ':latest'
         self.docker.commit_container(container_id, commit_name)
+
         update_task_state(task_state=task_states.IMAGE_UPLOADING,
                           expected_state=task_states.IMAGE_PENDING_UPLOAD)
-        headers = {'X-Meta-Glance-Image-Id': image_href}
-        self.docker.push_repository(name, headers=headers)
+        self.docker.save(name, path)
+        with open(path): as image_file:
+            image_service.update(context, image_href, metadata, image_file)
 
     def _get_cpu_shares(self, instance):
         """Get allocated CPUs from configured flavor.
