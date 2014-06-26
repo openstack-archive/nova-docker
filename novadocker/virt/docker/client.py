@@ -54,7 +54,6 @@ class Response(object):
         self.url = url
         self._response = http_response
         self.code = int(http_response.status)
-        self.data = http_response.read()
         self._json = None
 
     def read(self, size=None):
@@ -62,7 +61,7 @@ class Response(object):
 
     def to_json(self, default=None):
         if not self._json:
-            self._json = self._decode_json(self.data, default)
+            self._json = self._decode_json(self._response.read(), default)
         return self._json
 
     def _validate_content_type(self):
@@ -209,32 +208,31 @@ class DockerHTTPClient(object):
             '/v1.7/containers/{0}'.format(container_id))
         return (resp.code == 204)
 
-    def pull_repository(self, name):
+    def get_image(self, name, size=4096):
         parts = name.rsplit(':', 1)
-        url = '/v1.7/images/create?fromImage={0}'.format(parts[0])
-        if len(parts) > 1:
-            url += '&tag={0}'.format(parts[1])
-        resp = self.make_request('POST', url)
-        while True:
-            buf = resp.read(1024)
-            if not buf:
-                # Image pull completed
-                break
-        return (resp.code == 200)
+        url = '/v1.13/images/{0}/get'.format(parts[0])
+        resp = self.make_request('GET', url)
 
-    def push_repository(self, name, headers=None):
-        url = '/v1.7/images/{0}/push'.format(name)
-        # NOTE(samalba): docker requires the credentials fields even if
-        # they're not needed here.
-        body = ('{"username":"foo","password":"bar",'
-                '"auth":"","email":"foo@bar.bar"}')
-        resp = self.make_request('POST', url, headers=headers, body=body)
         while True:
-            buf = resp.read(1024)
+            buf = resp.read(size)
             if not buf:
-                # Image push completed
                 break
-        return (resp.code == 200)
+            yield buf
+        return
+
+    def get_image_resp(self, name):
+        parts = name.rsplit(':', 1)
+        url = '/v1.13/images/{0}/get'.format(parts[0])
+        resp = self.make_request('GET', url)
+        return resp
+
+    def load_repository(self, name, data):
+        url = '/v1.13/images/load'
+        resp = self.make_request('POST', url, data)
+
+    def load_repository_file(self, name, path):
+        with open(path) as fh:
+            self.load_repository(name, fh)
 
     def commit_container(self, container_id, name):
         parts = name.rsplit(':', 1)
@@ -252,4 +250,4 @@ class DockerHTTPClient(object):
              '?logs=1&stream=0&stdout=1&stderr=1').format(container_id))
         if resp.code != 200:
             return
-        return resp.data
+        return resp.read()
