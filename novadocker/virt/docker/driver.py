@@ -20,6 +20,7 @@ A Docker Hypervisor which allows running Linux Containers instead of VMs.
 import os
 import socket
 import time
+import uuid
 
 from oslo.config import cfg
 
@@ -28,6 +29,7 @@ from nova.compute import power_state
 from nova.compute import task_states
 from nova import exception
 from nova.image import glance
+from nova.openstack.common import fileutils
 from nova.openstack.common.gettextutils import _
 from nova.openstack.common import importutils
 from nova.openstack.common import jsonutils
@@ -35,6 +37,7 @@ from nova.openstack.common import log
 from nova.openstack.common import units
 from nova import utils
 from nova.virt import driver
+from nova.virt import images
 from novadocker.virt.docker import client as docker_client
 from novadocker.virt.docker import hostinfo
 from novadocker.virt.docker import network
@@ -42,18 +45,15 @@ from novadocker.virt import hostutils
 
 CONF = cfg.CONF
 CONF.import_opt('my_ip', 'nova.netconf')
+CONF.import_opt('instances_path', 'nova.compute.manager')
 
 docker_opts = [
-    cfg.IntOpt('registry_port',
-               default=5042,
-               help=_('Docker registry TCP port'),
-               deprecated_group='DEFAULT',
-               deprecated_name='docker_registry_default_port'),
-    cfg.StrOpt('registry_ip',
-               default=CONF.my_ip,
-               help=_('Docker registry IP address')),
     cfg.StrOpt('vif_driver',
-               default='novadocker.virt.docker.vifs.DockerGenericVIFDriver')
+               default='novadocker.virt.docker.vifs.DockerGenericVIFDriver'),
+    cfg.StrOpt('snapshots_directory',
+               default='$instances_path/snapshots',
+               help='Location where docker driver will temporarily store '
+                    'snapshots.')
 ]
 
 CONF.register_opts(docker_opts, 'docker')
@@ -81,9 +81,6 @@ class DockerDriver(driver.ComputeDriver):
             raise exception.NovaException(
                 _('Docker daemon is not running or is not reachable'
                   ' (check the rights on /var/run/docker.sock)'))
-
-        self._registry_port = CONF.docker.registry_port
-        self._registry_ip = CONF.docker.registry_ip
 
     def _is_daemon_running(self):
         try:
@@ -239,21 +236,29 @@ class DockerDriver(driver.ComputeDriver):
             msg = _('Image container format not supported ({0})')
             raise exception.InstanceDeployFailure(msg.format(fmt),
                                                   instance_id=instance['name'])
-        return '{0}:{1}/{2}'.format(self._registry_ip,
-                                    self._registry_port,
-                                    image['name'].lower())
+        return image['name']
 
-    def _pull_missing_image(self, image_name, instance):
+    def _pull_missing_image(self, context, image_meta, instance):
         msg = 'Image name "%s" does not exist, fetching it...'
-        LOG.debug(msg % image_name)
-        res = self.docker.pull_repository(image_name)
-        if res is False:
-            msg = _('Cannot pull missing image "%s"')
-            raise exception.InstanceDeployFailure(
-                msg % instance['name'],
-                instance_id=instance['name'])
-        image = self.docker.inspect_image(image_name)
-        return image
+        LOG.debug(msg % image_meta['name'])
+
+        # TODO(imain): It would be nice to do this with file like object
+        # passing but that seems a bit complex right now.
+        snapshot_directory = CONF.docker.snapshots_directory
+        fileutils.ensure_tree(snapshot_directory)
+        with utils.tempdir(dir=snapshot_directory) as tmpdir:
+            try:
+                out_path = os.path.join(tmpdir, uuid.uuid4().hex)
+
+                images.fetch(context, image_meta['id'], out_path,
+                             instance['user_id'], instance['project_id'])
+                self.docker.load_repository_file(image_meta['name'], out_path)
+            except Exception as e:
+                msg = _('Cannot load repository file: {0}')
+                raise exception.NovaException(msg.format(e),
+                                              instance_id=image_meta['name'])
+
+        return self.docker.inspect_image(image_meta['name'])
 
     def _start_container(self, instance, network_info=None):
         container_id = self._find_container_by_name(instance['name']).get('id')
@@ -282,10 +287,8 @@ class DockerDriver(driver.ComputeDriver):
         }
 
         image = self.docker.inspect_image(image_name)
-
         if not image:
-            image = self._pull_missing_image(image_name, instance)
-
+            image = self._pull_missing_image(context, image_meta, instance)
         if not (image and image['container_config']['Cmd']):
             args['Cmd'] = ['sh']
         # Glance command-line overrides any set in the Docker image
@@ -400,21 +403,44 @@ class DockerDriver(driver.ComputeDriver):
         container_id = self._find_container_by_name(instance['name']).get('id')
         if not container_id:
             raise exception.InstanceNotRunning(instance_id=instance['uuid'])
+
         update_task_state(task_state=task_states.IMAGE_PENDING_UPLOAD)
         (image_service, image_id) = glance.get_remote_image_service(
             context, image_href)
         image = image_service.show(context, image_id)
-        name = image['name'].lower()
+        name = image['name']
         default_tag = (':' not in name)
-        name = '{0}:{1}/{2}'.format(self._registry_ip,
-                                    self._registry_port,
-                                    name)
         commit_name = name if not default_tag else name + ':latest'
+
         self.docker.commit_container(container_id, commit_name)
+
         update_task_state(task_state=task_states.IMAGE_UPLOADING,
                           expected_state=task_states.IMAGE_PENDING_UPLOAD)
-        headers = {'X-Meta-Glance-Image-Id': image_href}
-        self.docker.push_repository(name, headers=headers)
+
+        metadata = {
+            'is_public': False,
+            'status': 'active',
+            'disk_format': 'raw',
+            'container_format': 'docker',
+            'name': name,
+            'properties': {
+                'image_location': 'snapshot',
+                'image_state': 'available',
+                'status': 'available',
+                'owner_id': instance['project_id'],
+                'ramdisk_id': instance['ramdisk_id']
+            }
+        }
+        if instance['os_type']:
+            metadata['properties']['os_type'] = instance['os_type']
+
+        try:
+            fh = self.docker.get_image_resp(commit_name)
+            image_service.update(context, image_href, metadata, fh)
+        except Exception as e:
+            msg = _('Error saving image: {0}')
+            raise exception.NovaException(msg.format(e),
+                                          instance_id=instance['name'])
 
     def _get_cpu_shares(self, instance):
         """Get allocated CPUs from configured flavor.
