@@ -62,15 +62,6 @@ if [[ $VIRT_DRIVER == "docker" ]]; then
     if ! timeout $SERVICE_TIMEOUT sh -c "$CONFIGURE_CMD"; then
       die $LINENO "docker did not start"
     fi
-
-    # Get guest container image
-    docker pull $DOCKER_IMAGE
-    docker tag $DOCKER_IMAGE $DOCKER_IMAGE_NAME
-
-    # Get docker-registry image
-    docker pull $DOCKER_REGISTRY_IMAGE
-    docker tag $DOCKER_REGISTRY_IMAGE $DOCKER_REGISTRY_IMAGE_NAME
-
   fi
 
 fi
