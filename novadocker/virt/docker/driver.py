@@ -335,12 +335,9 @@ class DockerDriver(driver.ComputeDriver):
         container_id = self._find_container_by_name(instance['name']).get('id')
         if not container_id:
             return
-        if not self.docker.stop_container(container_id):
-            LOG.warning(_('Cannot stop the container, '
-                          'please check docker logs'))
-        if not self.docker.start_container(container_id):
-            LOG.warning(_('Cannot restart the container, '
-                          'please check docker logs'))
+
+        self.power_off(instance)
+        self.power_on(context, instance, network_info, block_device_info)
 
     def power_on(self, context, instance, network_info, block_device_info):
         container_id = self._find_container_by_name(instance['name']).get('id')
@@ -356,11 +353,14 @@ class DockerDriver(driver.ComputeDriver):
             raise exception.InstanceDeployFailure(msg.format(e),
                                                   instance_id=instance['name'])
 
-    def power_off(self, instance):
+    def power_off(self, instance, network_info=None):
         container_id = self._find_container_by_name(instance['name']).get('id')
         if not container_id:
             return
         self.docker.stop_container(container_id)
+
+        if network_info:
+            self.unplug_vifs(instance, network_info)
 
     def pause(self, instance):
         """Pause the specified instance.
@@ -440,3 +440,4 @@ class DockerDriver(driver.ComputeDriver):
 
     def get_host_uptime(self, host):
         return hostutils.sys_uptime()
+
