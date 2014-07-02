@@ -440,4 +440,3 @@ class DockerDriver(driver.ComputeDriver):
 
     def get_host_uptime(self, host):
         return hostutils.sys_uptime()
-
