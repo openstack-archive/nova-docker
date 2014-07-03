@@ -18,7 +18,7 @@ cat - <<-EOF >> $INSTALLDIR/devstack/localrc
 export VIRT_DRIVER=docker
 export HOST_IP=$HOST_IP
 export KEYSTONE_ADMIN_BIND_HOST=0.0.0.0
-export DOCKER_REGISTRY_IMAGE=registry
+export DOCKER_REGISTRY_IMAGE=registry:0.6.9
 export DEFAULT_IMAGE_NAME=cirros
 export IMAGE_URLS=" "
 EOF
