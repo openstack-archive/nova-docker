@@ -34,8 +34,10 @@ DOCKER_DIR=$DEST/nova-docker
 
 DOCKER_UNIX_SOCKET=/var/run/docker.sock
 DOCKER_PID_FILE=/var/run/docker.pid
-DOCKER_REGISTRY_PORT=${DOCKER_REGISTRY_PORT:-5042}
 
+NOVADOCKER_INSTALL_REGISTRY=${NOVADOCKER_INSTALL_REGISTRY:-true}
+DOCKER_REGISTRY_PORT=${DOCKER_REGISTRY_PORT:-5042}
+DOCKER_REGISTRY=${DOCKER_REGISTRY:-"$SERVICE_HOST:$DOCKER_REGISTRY_PORT"}
 DOCKER_IMAGE=${DOCKER_IMAGE:-cirros:latest}
 DOCKER_IMAGE_NAME=$DEFAULT_IMAGE_NAME
 DOCKER_REGISTRY_IMAGE=${DOCKER_REGISTRY_IMAGE:-registry:0.6.9}
@@ -98,17 +100,18 @@ function start_nova_hypervisor {
     # push the rootwrap
     sudo cp $DOCKER_DIR/etc/nova/rootwrap.d/docker.filters  /etc/nova/rootwrap.d/docker.filters
 
-    # Start the Docker registry container
-    docker run -d -p ${DOCKER_REGISTRY_PORT}:5000 \
-        -e SETTINGS_FLAVOR=openstack -e OS_USERNAME=${OS_USERNAME} \
-        -e OS_PASSWORD=${OS_PASSWORD} -e OS_TENANT_NAME=${OS_TENANT_NAME} \
-        -e OS_GLANCE_URL="${SERVICE_PROTOCOL}://${GLANCE_HOSTPORT}" \
-        -e OS_AUTH_URL=${OS_AUTH_URL} \
-        --name $DOCKER_REGISTRY_IMAGE_NAME \
-        $DOCKER_REGISTRY_IMAGE
+    if [ $NOVADOCKER_INSTALL_REGISTRY == "true" ]; then
+        # Start the Docker registry container
+        docker run -d -p ${DOCKER_REGISTRY_PORT}:5000 \
+            -e SETTINGS_FLAVOR=openstack -e OS_USERNAME=${OS_USERNAME} \
+            -e OS_PASSWORD=${OS_PASSWORD} -e OS_TENANT_NAME=${OS_TENANT_NAME} \
+            -e OS_GLANCE_URL="${SERVICE_PROTOCOL}://${GLANCE_HOSTPORT}" \
+            -e OS_AUTH_URL=${OS_AUTH_URL} \
+            --name $DOCKER_REGISTRY_IMAGE_NAME \
+            $DOCKER_REGISTRY_IMAGE
+    fi
 
     echo "Waiting for docker registry to start..."
-    DOCKER_REGISTRY=${SERVICE_HOST}:${DOCKER_REGISTRY_PORT}
     if ! timeout $SERVICE_TIMEOUT sh -c "while ! curl -s $DOCKER_REGISTRY; do sleep 1; done"; then
         die $LINENO "docker-registry did not start"
     fi
@@ -126,9 +129,11 @@ function start_nova_hypervisor {
 
 # stop_nova_hypervisor - Stop any external services
 function stop_nova_hypervisor {
-    # Stop the docker registry container
-    docker stop $DOCKER_REGISTRY_IMAGE_NAME
-    docker rm $DOCKER_REGISTRY_IMAGE_NAME
+    if [ $NOVADOCKER_INSTALL_REGISTRY == "true" ]; then
+        # Stop the docker registry container
+        docker stop $DOCKER_REGISTRY_IMAGE_NAME
+        docker rm $DOCKER_REGISTRY_IMAGE_NAME
+    fi
 }
 
 # Restore xtrace
