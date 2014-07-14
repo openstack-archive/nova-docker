@@ -110,6 +110,11 @@ class DockerDriver(driver.ComputeDriver):
 
     def plug_vifs(self, instance, network_info):
         """Plug VIFs into networks."""
+        for vif in network_info:
+            self.vif_driver.plug(instance, vif)
+
+    def _attach_vifs(self, instance, network_info):
+        """Plug VIFs into container."""
         if not network_info:
             return
         container_id = self._find_container_by_name(instance['name']).get('id')
@@ -130,7 +135,7 @@ class DockerDriver(driver.ComputeDriver):
             run_as_root=True)
 
         for vif in network_info:
-            self.vif_driver.plug(instance, vif, container_id)
+            self.vif_driver.attach(instance, vif, container_id)
 
     def unplug_vifs(self, instance, network_info):
         """Unplug VIFs from networks."""
@@ -263,6 +268,7 @@ class DockerDriver(driver.ComputeDriver):
         self.docker.start_container(container_id)
         try:
             self.plug_vifs(instance, network_info)
+            self._attach_vifs(instance, network_info)
         except Exception as e:
             msg = _('Cannot setup network: {0}')
             self.docker.kill_container(container_id)
@@ -349,6 +355,7 @@ class DockerDriver(driver.ComputeDriver):
         self.docker.start_container(container_id)
         try:
             self.plug_vifs(instance, network_info)
+            self._attach_vifs(instance, network_info)
         except Exception as e:
             msg = _('Cannot setup network: {0}')
             self.docker.kill_container(container_id)
