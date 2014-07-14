@@ -50,7 +50,16 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
             return
 
         self.stubs.Set(novadocker.virt.docker.driver.DockerDriver,
-                       'plug_vifs', fake_plug_vifs)
+                       'plug_vifs',
+                       fake_plug_vifs)
+
+        def fake_attach_vifs(self, instance, network_info):
+            return
+
+        self.stubs.Set(novadocker.virt.docker.driver.DockerDriver,
+                       '_attach_vifs',
+                       fake_attach_vifs)
+
         self.stubs.Set(novadocker.virt.docker.hostinfo,
                        'get_meminfo', stubs.get_meminfo)
 

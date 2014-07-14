@@ -29,10 +29,10 @@ LOG = logging.getLogger(__name__)
 
 class DockerGenericVIFDriver(object):
 
-    def plug(self, instance, vif, container_id):
+    def plug(self, instance, vif):
         vif_type = vif['type']
 
-        LOG.debug('vif_type=%(vif_type)s instance=%(instance)s '
+        LOG.debug('plug vif_type=%(vif_type)s instance=%(instance)s '
                   'vif=%(vif)s',
                   {'vif_type': vif_type, 'instance': instance,
                    'vif': vif})
@@ -43,19 +43,17 @@ class DockerGenericVIFDriver(object):
                   "for this vif_driver implementation"))
 
         if vif_type == network_model.VIF_TYPE_BRIDGE:
-            self.plug_bridge(instance, vif, container_id)
+            self.plug_bridge(instance, vif)
         elif vif_type == network_model.VIF_TYPE_OVS:
-            self.plug_ovs(instance, vif, container_id)
+            self.plug_ovs(instance, vif)
         else:
             raise exception.NovaException(
                 _("Unexpected vif_type=%s") % vif_type)
 
-    def plug_ovs(self, instance, vif, container_id):
+    def plug_ovs(self, instance, vif):
         if_local_name = 'tap%s' % vif['id'][:11]
         if_remote_name = 'ns%s' % vif['id'][:11]
         bridge = vif['network']['bridge']
-        gateway = network.find_gateway(instance, vif['network'])
-        ip = network.find_fixed_ip(instance, vif['network'])
 
         # Device already exists so return.
         if linux_net.device_exists(if_local_name):
@@ -72,23 +70,12 @@ class DockerGenericVIFDriver(object):
                                           instance['uuid'])
             utils.execute('ip', 'link', 'set', if_local_name, 'up',
                           run_as_root=True)
-            utils.execute('ip', 'link', 'set', if_remote_name, 'netns',
-                          container_id, run_as_root=True)
-            utils.execute('ip', 'netns', 'exec', container_id, 'ip', 'link',
-                          'set', if_remote_name, 'address', vif['address'],
-                          run_as_root=True)
-            utils.execute('ip', 'netns', 'exec', container_id, 'ifconfig',
-                          if_remote_name, ip, run_as_root=True)
-            utils.execute('ip', 'netns', 'exec', container_id,
-                          'ip', 'route', 'replace', 'default', 'via',
-                          gateway, 'dev', if_remote_name, run_as_root=True)
-
         except Exception:
             LOG.exception("Failed to configure network")
             msg = _('Failed to setup the network, rolling back')
             undo_mgr.rollback_and_reraise(msg=msg, instance=instance)
 
-    def plug_bridge(self, instance, vif, container_id):
+    def plug_bridge(self, instance, vif):
         if_local_name = 'tap%s' % vif['id'][:11]
         if_remote_name = 'ns%s' % vif['id'][:11]
         bridge = vif['network']['bridge']
@@ -112,16 +99,6 @@ class DockerGenericVIFDriver(object):
                           run_as_root=True)
             utils.execute('ip', 'link', 'set', if_local_name, 'up',
                           run_as_root=True)
-            utils.execute('ip', 'link', 'set', if_remote_name, 'netns',
-                          container_id, run_as_root=True)
-            utils.execute('ip', 'netns', 'exec', container_id, 'ip', 'link',
-                          'set', if_remote_name, 'address', vif['address'],
-                          run_as_root=True)
-            utils.execute('ip', 'netns', 'exec', container_id, 'ifconfig',
-                          if_remote_name, ip, run_as_root=True)
-            utils.execute('ip', 'netns', 'exec', container_id,
-                          'ip', 'route', 'replace', 'default', 'via',
-                          gateway, 'dev', if_remote_name, run_as_root=True)
         except Exception:
             LOG.exception("Failed to configure network")
             msg = _('Failed to setup the network, rolling back')
@@ -161,3 +138,28 @@ class DockerGenericVIFDriver(object):
         # as when the veth is deleted it automatically is removed from
         # the bridge.
         pass
+
+    def attach(self, instance, vif, container_id):
+        vif_type = vif['type']
+        if_remote_name = 'ns%s' % vif['id'][:11]
+        gateway = network.find_gateway(instance, vif['network'])
+        ip = network.find_fixed_ip(instance, vif['network'])
+
+        LOG.debug('attach vif_type=%(vif_type)s instance=%(instance)s '
+                  'vif=%(vif)s',
+                  {'vif_type': vif_type, 'instance': instance,
+                   'vif': vif})
+
+        try:
+            utils.execute('ip', 'link', 'set', if_remote_name, 'netns',
+                          container_id, run_as_root=True)
+            utils.execute('ip', 'netns', 'exec', container_id, 'ip', 'link',
+                          'set', if_remote_name, 'address', vif['address'],
+                          run_as_root=True)
+            utils.execute('ip', 'netns', 'exec', container_id, 'ifconfig',
+                          if_remote_name, ip, run_as_root=True)
+            utils.execute('ip', 'netns', 'exec', container_id,
+                          'ip', 'route', 'replace', 'default', 'via',
+                          gateway, 'dev', if_remote_name, run_as_root=True)
+        except Exception:
+            LOG.exception("Failed to attach vif")
