@@ -143,7 +143,7 @@ class DockerHTTPClient(object):
         data.update(args)
         resp = self.make_request(
             'POST',
-            '/v1.7/containers/create?name={0}'.format(name),
+            '/v1.7/containers/create?name={0}'.format(name.encode('utf-8')),
             body=jsonutils.dumps(data))
         if resp.code != 201:
             return
@@ -176,7 +176,7 @@ class DockerHTTPClient(object):
     def inspect_image(self, image_name):
         resp = self.make_request(
             'GET',
-            '/v1.7/images/{0}/json'.format(image_name))
+            '/v1.7/images/{0}/json'.format(image_name.encode('utf-8')))
         if resp.code != 200:
             return
         return resp.to_json()
@@ -209,7 +209,7 @@ class DockerHTTPClient(object):
         return (resp.code == 204)
 
     def get_image(self, name, size=4096):
-        parts = name.rsplit(':', 1)
+        parts = name.encode('utf-8').rsplit(':', 1)
         url = '/v1.13/images/{0}/get'.format(parts[0])
         resp = self.make_request('GET', url)
 
@@ -221,7 +221,7 @@ class DockerHTTPClient(object):
         return
 
     def get_image_resp(self, name):
-        parts = name.rsplit(':', 1)
+        parts = name.encode('utf-8').rsplit(':', 1)
         url = '/v1.13/images/{0}/get'.format(parts[0])
         resp = self.make_request('GET', url)
         return resp
@@ -232,10 +232,10 @@ class DockerHTTPClient(object):
 
     def load_repository_file(self, name, path):
         with open(path) as fh:
-            self.load_repository(name, fh)
+            self.load_repository(name.encode('utf-8'), fh)
 
     def commit_container(self, container_id, name):
-        parts = name.rsplit(':', 1)
+        parts = name.encode('utf-8').rsplit(':', 1)
         url = '/v1.7/commit?container={0}&repo={1}'.format(container_id,
                                                            parts[0])
         if len(parts) > 1:
