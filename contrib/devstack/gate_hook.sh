@@ -1,7 +1,7 @@
 #!/bin/bash
 set -xe
 
-SCRIPTDIR=$(realpath $(dirname $0))
+SCRIPTDIR=$(readlink -f $(dirname $0))
 
 # TODO : This should be removed once PATH contains sbin
 #        https://review.openstack.org/#/c/91655/
