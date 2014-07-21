@@ -21,10 +21,7 @@ export KEEP_LOCALRC=1
 HOST_IP=$(ip addr | grep -Eo "inet [0-9\.]+" | grep -v 127.0.0.1 | head -n 1 | cut -d " " -f 2)
 sed -i -e "s/SERVICE_HOST=127.0.0.1/SERVICE_HOST=$HOST_IP/g" $INSTALLDIR/devstack-gate/devstack-vm-gate.sh
 
-export PYTHONUNBUFFERED=true
-export DEVSTACK_GATE_TIMEOUT=60
 export DEVSTACK_GATE_TEMPEST=1
 export DEVSTACK_GATE_TEMPEST_FULL=1
-export PROJECTS="stackforge/nova-docker $PROJECTS"
 
 $INSTALLDIR/devstack-gate/devstack-vm-gate.sh
