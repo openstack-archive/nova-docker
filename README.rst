@@ -26,30 +26,38 @@ Note: There are better and cleaner ways of managing Python modules, such as usin
 
 In nova.conf::
 
-  compute_driver novadocker.virt.docker.DockerDriver
-
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-3. Setup a Docker registry
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-In a single-host development environment, the registry may live on 'localhost' using port 5042. Otherwise, it is best-advised to use a centralized registry endpoint. If running a centralized registry, it will be necessary to tune the configuration to specify its IP address and port (see step 3).
-
-Furthermore, the registry deployed must use the Glance backend. If running multiple registries, set storage_alternative to 's3' in the registry's configuration.
-
-For further reading and information on installing the registry for use in OpenStack: https://github.com/dmp42/docker-registry-driver-glance
+  compute_driver=novadocker.virt.docker.DockerDriver
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-4. Optionally tune site-specific settings.
+3. Optionally tune site-specific settings.
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In nova.conf::
 
   [docker]
-  registry_ip=172.16.0.2
-  registry_port=5000
-  vif_driver=novadocker.virt.docker.vifs.DockerGenericVIFDriver
+  # Commented out. Uncomment these if you'd like to customize:
+  ## vif_driver=novadocker.virt.docker.vifs.DockerGenericVIFDriver
+  ## snapshots_directory=/var/tmp/my-snapshot-tempdir
 
-Where the registry_ip and port refer to a local Docker registry.
+--------------------------
+Uploading Images to Glance
+--------------------------
+
+Images may now be saved directly to Glance::
+
+  $ docker pull busybox
+  $ docker save busybox | glance image-create --is-public=True --container-format=docker --disk-format=raw --name busybox
+
+**Note:** At present, only administrators should be allowed to manage images.
+
+The name of the image in Glance should be explicitly set to the same name as the image as it is known to Docker. In the example above, an image has been tagged in Docker as 'busybox'. Matching this is the '--name busybox' argument to *glance image-create*. If these names do not align, the image will not be bootable.
+
+-----
+Notes
+-----
+
+* Earlier releases of this driver required the deployment of a private docker registry. This is no longer required. Images are now saved and loaded from Glance.
+* Images loaded from Glance may do bad things. Only allow administrators to add images. Users may create snapshots of their containers, generating images in Glance -- these images are managed and thus safe.
 
 ----------
 Contact Us
