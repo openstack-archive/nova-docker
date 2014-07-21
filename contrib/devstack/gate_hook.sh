@@ -21,10 +21,21 @@ export KEEP_LOCALRC=1
 HOST_IP=$(ip addr | grep -Eo "inet [0-9\.]+" | grep -v 127.0.0.1 | head -n 1 | cut -d " " -f 2)
 sed -i -e "s/SERVICE_HOST=127.0.0.1/SERVICE_HOST=$HOST_IP/g" $INSTALLDIR/devstack-gate/devstack-vm-gate.sh
 
-export PYTHONUNBUFFERED=true
-export DEVSTACK_GATE_TIMEOUT=60
+# Turn off tempest test suites
+cat <<EOF >> $INSTALLDIR/tempest/etc/tempest.conf.sample
+# The following settings have been turned off for nova-docker
+[compute-feature-enabled]
+resize=False
+suspend=False
+rescue=False
+
+[service_available]
+swift=False
+ceilometer=False
+cinder=False
+EOF
+
 export DEVSTACK_GATE_TEMPEST=1
 export DEVSTACK_GATE_TEMPEST_FULL=1
-export PROJECTS="stackforge/nova-docker $PROJECTS"
 
 $INSTALLDIR/devstack-gate/devstack-vm-gate.sh
