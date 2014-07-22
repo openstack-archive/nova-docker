@@ -14,17 +14,20 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
 from nova import exception
+from nova import utils
 from nova.network import linux_net
+from nova.network import manager
 from nova.network import model as network_model
 from nova.openstack.common.gettextutils import _
 from nova.openstack.common import log as logging
 from nova.openstack.common import processutils
-from nova import utils
 from novadocker.virt.docker import network
+from oslo.config import cfg
 
 LOG = logging.getLogger(__name__)
+CONF = cfg.CONF
+CONF.import_opt('my_ip', 'nova.netconf')
 
 
 class DockerGenericVIFDriver(object):
@@ -80,7 +83,29 @@ class DockerGenericVIFDriver(object):
         if_remote_name = 'ns%s' % vif['id'][:11]
         bridge = vif['network']['bridge']
         gateway = network.find_gateway(instance, vif['network'])
-        ip = network.find_fixed_ip(instance, vif['network'])
+        vlan = vif.get('vlan')
+        if vlan is not None:
+            iface = CONF.vlan_interface or vif['network']['meta']['bridge_interface']
+            linux_net.LinuxBridgeInterfaceDriver.ensure_vlan_bridge(
+                           vlan,
+                           bridge,
+                           iface,
+                           net_attrs=vif,
+                           mtu=vif.get('mtu'))
+            iface = 'vlan%s' % vlan
+        else:
+
+            LOG.debug('meta is %s' % (vif['meta']))
+            LOG.debug('bridge interface is %s' % (vif['network']['meta']['bridge_interface']))
+            iface = CONF.flat_interface or vif['network']['meta']['bridge_interface']
+            LOG.debug('Ensuring bridge for %s - %s' % (iface, bridge))
+            linux_net.LinuxBridgeInterfaceDriver.ensure_bridge(
+                          bridge,
+                          iface,
+                          net_attrs=vif,
+                          gateway=gateway)
+
+        goofbar()
 
         # Device already exists so return.
         if linux_net.device_exists(if_local_name):
