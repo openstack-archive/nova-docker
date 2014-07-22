@@ -29,7 +29,7 @@ ceilometer=False
 cinder=False
 EOF
 
-export DEVSTACK_GATE_TEMPEST=1
-export DEVSTACK_GATE_TEMPEST_FULL=1
+export DEVSTACK_GATE_TEMPEST=0
+export DEVSTACK_GATE_TEMPEST_FULL=0
 
 $INSTALLDIR/devstack-gate/devstack-vm-gate.sh
