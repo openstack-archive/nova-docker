@@ -44,7 +44,6 @@ def find_fixed_ip(instance, network_info):
     raise exception.InstanceDeployFailure(_('Cannot find fixed ip'),
                                           instance_id=instance['uuid'])
 
-
 def find_gateway(instance, network_info):
     for subnet in network_info['subnets']:
         return subnet['gateway']['address']
