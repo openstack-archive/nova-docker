@@ -13,18 +13,21 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
-
+import random
 from nova import exception
+from nova import utils
 from nova.network import linux_net
+from nova.network import manager
 from nova.network import model as network_model
 from nova.openstack.common.gettextutils import _
 from nova.openstack.common import log as logging
 from nova.openstack.common import processutils
-from nova import utils
 from novadocker.virt.docker import network
+from oslo.config import cfg
 
 LOG = logging.getLogger(__name__)
+CONF = cfg.CONF
+CONF.import_opt('my_ip', 'nova.netconf')
 
 
 class DockerGenericVIFDriver(object):
@@ -75,12 +78,39 @@ class DockerGenericVIFDriver(object):
             msg = _('Failed to setup the network, rolling back')
             undo_mgr.rollback_and_reraise(msg=msg, instance=instance)
 
+    def random_mac(self):
+        mac = [0xFE, 0x16, 0x3e,
+            random.randint(0x00, 0x7f),
+            random.randint(0x00, 0xff),
+            random.randint(0x00, 0xff)]
+        return ':'.join(map(lambda x: "%02x" % x, mac))
+
     def plug_bridge(self, instance, vif):
         if_local_name = 'tap%s' % vif['id'][:11]
         if_remote_name = 'ns%s' % vif['id'][:11]
         bridge = vif['network']['bridge']
         gateway = network.find_gateway(instance, vif['network'])
-        ip = network.find_fixed_ip(instance, vif['network'])
+        vlan = vif.get('vlan')
+        if vlan is not None:
+            iface = CONF.vlan_interface or vif['network']['meta']['bridge_interface']
+            linux_net.LinuxBridgeInterfaceDriver.ensure_vlan_bridge(
+                           vlan,
+                           bridge,
+                           iface,
+                           net_attrs=vif,
+                           mtu=vif.get('mtu'))
+            iface = 'vlan%s' % vlan
+        else:
+
+            LOG.debug('meta is %s' % (vif['meta']))
+            LOG.debug('bridge interface is %s' % (vif['network']['meta']['bridge_interface']))
+            iface = CONF.flat_interface or vif['network']['meta']['bridge_interface']
+            LOG.debug('Ensuring bridge for %s - %s' % (iface, bridge))
+            linux_net.LinuxBridgeInterfaceDriver.ensure_bridge(
+                          bridge,
+                          iface,
+                          net_attrs=vif,
+                          gateway=gateway)
 
         # Device already exists so return.
         if linux_net.device_exists(if_local_name):
@@ -95,8 +125,10 @@ class DockerGenericVIFDriver(object):
                 'ip', 'link', 'delete', if_local_name, run_as_root=True))
             # NOTE(samalba): Deleting the interface will delete all
             # associated resources (remove from the bridge, its pair, etc...)
+            mac = self.random_mac()
             utils.execute('brctl', 'addif', bridge, if_local_name,
                           run_as_root=True)
+            utils.execute('ip', 'link', 'set', if_local_name, 'address', mac)
             utils.execute('ip', 'link', 'set', if_local_name, 'up',
                           run_as_root=True)
         except Exception:
@@ -104,26 +136,27 @@ class DockerGenericVIFDriver(object):
             msg = _('Failed to setup the network, rolling back')
             undo_mgr.rollback_and_reraise(msg=msg, instance=instance)
 
+    from nova import network
     def unplug(self, instance, vif):
-        vif_type = vif['type']
+            vif_type = vif['type']
 
-        LOG.debug('vif_type=%(vif_type)s instance=%(instance)s '
-                  'vif=%(vif)s',
-                  {'vif_type': vif_type, 'instance': instance,
-                   'vif': vif})
+            LOG.debug('vif_type=%(vif_type)s instance=%(instance)s '
+                      'vif=%(vif)s',
+                      {'vif_type': vif_type, 'instance': instance,
+                       'vif': vif})
 
-        if vif_type is None:
-            raise exception.NovaException(
-                _("vif_type parameter must be present "
-                  "for this vif_driver implementation"))
+            if vif_type is None:
+                raise exception.NovaException(
+                    _("vif_type parameter must be present "
+                      "for this vif_driver implementation"))
 
-        if vif_type == network_model.VIF_TYPE_BRIDGE:
-            self.unplug_bridge(instance, vif)
-        elif vif_type == network_model.VIF_TYPE_OVS:
-            self.unplug_ovs(instance, vif)
-        else:
-            raise exception.NovaException(
-                _("Unexpected vif_type=%s") % vif_type)
+            if vif_type == network_model.VIF_TYPE_BRIDGE:
+                self.unplug_bridge(instance, vif)
+            elif vif_type == network_model.VIF_TYPE_OVS:
+                self.unplug_ovs(instance, vif)
+            else:
+                raise exception.NovaException(
+                    _("Unexpected vif_type=%s") % vif_type)
 
     def unplug_ovs(self, instance, vif):
         """Unplug the VIF by deleting the port from the bridge."""
