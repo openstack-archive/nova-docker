@@ -6,6 +6,9 @@ env
 NOVADOCKERDIR=$(realpath $(dirname $0)/../..)
 INSTALLDIR=${INSTALLDIR:-/opt/stack}
 
+sudo systemctl stop NetworkManager
+sudo systemctl status NetworkManager
+
 cp $NOVADOCKERDIR/contrib/devstack/extras.d/70-docker.sh $INSTALLDIR/devstack/extras.d/
 cp $NOVADOCKERDIR/contrib/devstack/lib/nova_plugins/hypervisor-docker $INSTALLDIR/devstack/lib/nova_plugins/
 
