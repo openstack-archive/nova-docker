@@ -35,7 +35,9 @@ from nova.openstack.common import importutils
 from nova.openstack.common import jsonutils
 from nova.openstack.common import log
 from nova.openstack.common import units
+from nova.network import manager
 from nova import utils
+from nova.network import linux_net
 from nova.virt import driver
 from nova.virt import images
 from novadocker.virt.docker import client as docker_client
@@ -69,6 +71,11 @@ class DockerDriver(driver.ComputeDriver):
         self._docker = None
         vif_class = importutils.import_class(CONF.docker.vif_driver)
         self.vif_driver = vif_class()
+        iface = CONF.flat_interface
+        bridge = CONF.flat_network_bridge
+        linux_net.LinuxBridgeInterfaceDriver.ensure_bridge(
+                          bridge,
+                          iface)
 
     @property
     def docker(self):
@@ -271,15 +278,15 @@ class DockerDriver(driver.ComputeDriver):
             return
 
         self.docker.start_container(container_id)
-        try:
-            self.plug_vifs(instance, network_info)
-            self._attach_vifs(instance, network_info)
-        except Exception as e:
-            msg = _('Cannot setup network: {0}')
-            self.docker.kill_container(container_id)
-            self.docker.destroy_container(container_id)
-            raise exception.InstanceDeployFailure(msg.format(e),
-                                                  instance_id=instance['name'])
+        #try:
+        self.plug_vifs(instance, network_info)
+        self._attach_vifs(instance, network_info)
+        # except Exception as e:
+        #     msg = _('Cannot setup network: {0}')
+        #     self.docker.kill_container(container_id)
+        #     self.docker.destroy_container(container_id)
+        #     raise exception.InstanceDeployFailure(msg.format(e),
+        #                                           instance_id=instance['name'])
 
     def spawn(self, context, instance, image_meta, injected_files,
               admin_password, network_info=None, block_device_info=None):
