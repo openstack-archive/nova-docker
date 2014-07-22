@@ -51,6 +51,10 @@ if [[ $VIRT_DRIVER == "docker" ]]; then
     # Start the daemon - restart just in case the package ever auto-starts...
     restart_service docker
 
+    which socat
+    ls -l /var/run/docker.sock
+    ps awux
+
     echo "Waiting for docker daemon to start..."
     DOCKER_GROUP=$(groups | cut -d' ' -f1)
     CONFIGURE_CMD="while ! /bin/echo -e 'GET /v1.3/version HTTP/1.0\n\n' | socat - unix-connect:$DOCKER_UNIX_SOCKET 2>/dev/null | grep -q '200 OK'; do
