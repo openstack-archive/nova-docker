@@ -1,11 +1,14 @@
 #!/bin/bash
 set -xe
 
+export PATH=$PATH:/usr/local/sbin:/usr/sbin
+
+which realpath
+echo dirname $0
 SCRIPTDIR=$(realpath $(dirname $0))
 
 # TODO : This should be removed once PATH contains sbin
 #        https://review.openstack.org/#/c/91655/
-export PATH=$PATH:/usr/local/sbin:/usr/sbin
 sudo useradd -U -s /bin/bash -d /opt/stack/new -m stack || true
 sudo useradd -U -s /bin/bash -m tempest || true
 
@@ -29,7 +32,7 @@ ceilometer=False
 cinder=False
 EOF
 
-export DEVSTACK_GATE_TEMPEST=0
-export DEVSTACK_GATE_TEMPEST_FULL=0
+export DEVSTACK_GATE_TEMPEST=1
+export DEVSTACK_GATE_TEMPEST_FULL=1
 
 $INSTALLDIR/devstack-gate/devstack-vm-gate.sh
