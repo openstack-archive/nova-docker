@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo.config import cfg
 
 from nova import exception
 from nova.network import linux_net
@@ -25,6 +26,18 @@ from nova import utils
 from novadocker.virt.docker import network
 
 LOG = logging.getLogger(__name__)
+
+libvirt_vif_opts = [
+    cfg.BoolOpt('use_virtio_for_bridges',
+                default=True,
+                help='Use virtio for bridge interfaces with KVM/QEMU'),
+]
+
+
+CONF = cfg.CONF
+CONF.register_opts(libvirt_vif_opts, 'libvirt')
+CONF.import_opt('virt_type', 'nova.virt.libvirt.driver', group='libvirt')
+CONF.import_opt('use_ipv6', 'nova.netconf')
 
 
 class DockerGenericVIFDriver(object):
@@ -92,6 +105,20 @@ class DockerGenericVIFDriver(object):
         if_local_name = 'tap%s' % vif['id'][:11]
         if_remote_name = 'ns%s' % vif['id'][:11]
         bridge = vif['network']['bridge']
+
+        # Ensure the bridge exists before we add the first interface to it or
+        # we end up with a race condition that can cause the bridge to have the
+        # MAC address of the first tap device, rendering the network unavailable.
+
+        LOG.debug("Going to set up bridge..")
+        iface = CONF.flat_interface
+        bridge = CONF.flat_network_bridge
+        LOG.debug("Calling ensure bridge for bridge %s iface %s.." %
+                        (bridge, iface))
+        linux_net.LinuxBridgeInterfaceDriver.ensure_bridge(
+                        bridge, iface)
+
+        LOG.debug("Done..")
         gateway = network.find_gateway(instance, vif['network'])
         ip = network.find_fixed_ip(instance, vif['network'])
 
