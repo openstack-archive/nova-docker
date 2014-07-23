@@ -15,6 +15,9 @@ bash -xe $SCRIPTDIR/prepare_devstack.sh
 export DEVSTACK_GATE_VIRT_DRIVER=docker
 export KEEP_LOCALRC=1
 
+# Accept all ssh connections, not just those on the IN_public_allow zone
+sudo iptables -I INPUT -p tcp -m tcp --dport 22 -j ACCEPT
+
 # Turn off tempest test suites
 cat <<EOF >> $INSTALLDIR/tempest/etc/tempest.conf.sample
 # The following settings have been turned off for nova-docker
