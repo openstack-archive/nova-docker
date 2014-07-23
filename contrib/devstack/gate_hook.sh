@@ -9,6 +9,10 @@ export PATH=$PATH:/usr/local/sbin:/usr/sbin
 sudo useradd -U -s /bin/bash -d /opt/stack/new -m stack || true
 sudo useradd -U -s /bin/bash -m tempest || true
 
+# Accept all ssh connections, not just those on the IN_public_allow zone
+sudo iptables -I INPUT -p tcp -m tcp --dport 22 -j ACCEPT
+sudo systemctl stop firewalld
+
 export INSTALLDIR=$BASE/new
 bash -xe $SCRIPTDIR/prepare_devstack.sh
 
