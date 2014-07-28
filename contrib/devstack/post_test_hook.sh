@@ -5,7 +5,7 @@
 
 set -xe
 
-NOVADOCKERDIR=$(realpath $(dirname $0)/../..)
+NOVADOCKERDIR=$(readlink -f $(dirname $0)/../..)
 
 cd $BASE/new/devstack
 
