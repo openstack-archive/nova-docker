@@ -25,6 +25,13 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
     def setUp(self):
         super(DockerGenericVIFDriverTestCase, self).setUp()
 
+        def fake_fe_random_mac(self):
+            return 'fe:16:3e:ff:ff:ff'
+
+        self.stubs.Set(novadocker.virt.docker.vifs.DockerGenericVIFDriver,
+                       '_fe_random_mac',
+                       fake_fe_random_mac)
+
     def test_plug_vifs_bridge(self):
         calls = [
             mock.call('ip', 'link', 'add', 'name', 'tap920be2f4-2b',
@@ -32,6 +39,8 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
                       run_as_root=True),
             mock.call('brctl', 'addif', 'br100', 'tap920be2f4-2b',
                       run_as_root=True),
+            mock.call('ip', 'link', 'set', 'tap920be2f4-2b', 'address',
+                      'fe:16:3e:ff:ff:ff', run_as_root=True),
             mock.call('ip', 'link', 'set', 'tap920be2f4-2b', 'up',
                       run_as_root=True)
         ]
@@ -41,7 +50,9 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
                                       'cidr': '10.11.12.0/24',
                                       'ips': [{'address': '10.11.12.3',
                                                'type': 'fixed', 'version': 4}]
-                                      }]},
+                                      }],
+                         'meta': {'bridge_interface': 'eth0'}
+                         },
              'address': '00:11:22:33:44:55',
              'id': '920be2f4-2b98-411e-890a-69bcabb2a5a0',
              'type': network_model.VIF_TYPE_BRIDGE}]
@@ -58,6 +69,8 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
                       run_as_root=True),
             mock.call('brctl', 'addif', 'br100', 'tap920be2f4-2b',
                       run_as_root=True),
+            mock.call('ip', 'link', 'set', 'tap920be2f4-2b', 'address',
+                      'fe:16:3e:ff:ff:ff', run_as_root=True),
             mock.call('ip', 'link', 'set', 'tap920be2f4-2b', 'up',
                       run_as_root=True),
             # interface 2
@@ -66,6 +79,8 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
                       run_as_root=True),
             mock.call('brctl', 'addif', 'br100', 'tap920be2f4-2b',
                       run_as_root=True),
+            mock.call('ip', 'link', 'set', 'tap920be2f4-2b', 'address',
+                      'fe:16:3e:ff:ff:ff', run_as_root=True),
             mock.call('ip', 'link', 'set', 'tap920be2f4-2b', 'up',
                       run_as_root=True),
         ]
@@ -75,7 +90,9 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
                                       'cidr': '10.11.12.0/24',
                                       'ips': [{'address': '10.11.12.3',
                                                'type': 'fixed', 'version': 4}],
-                                      }]},
+                                      }],
+                         'meta': {'bridge_interface': 'eth0'}
+                         },
              'address': '00:11:22:33:44:55',
              'type': network_model.VIF_TYPE_BRIDGE,
              'id': '920be2f4-2b98-411e-890a-69bcabb2a5a0'},
@@ -84,7 +101,9 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
                                       'cidr': '10.13.12.0/24',
                                       'ips': [{'address': '10.13.12.3',
                                                'type': 'fixed', 'version': 4}]
-                                      }]},
+                                      }],
+                         'meta': {'bridge_interface': 'eth0'}
+                         },
              'address': '00:11:22:33:44:66',
              'type': network_model.VIF_TYPE_BRIDGE,
              'id': '920be2f4-2b98-411e-890a-69bcabb2a5a0'}]
