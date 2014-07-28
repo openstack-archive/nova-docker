@@ -3,7 +3,7 @@ set -xe
 
 env
 
-NOVADOCKERDIR=$(realpath $(dirname $0)/../..)
+NOVADOCKERDIR=$(readlink -f $(dirname $0)/../..)
 INSTALLDIR=${INSTALLDIR:-/opt/stack}
 
 cp $NOVADOCKERDIR/contrib/devstack/extras.d/70-docker.sh $INSTALLDIR/devstack/extras.d/
