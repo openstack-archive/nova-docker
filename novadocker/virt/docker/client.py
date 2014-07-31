@@ -120,6 +120,8 @@ class DockerHTTPClient(object):
         resp = self.make_request(
             'GET',
             '/v1.7/containers/ps?all={0}'.format(int(_all)))
+        if resp.code == 404:
+            return []
         return resp.to_json(default=[])
 
     def create_container(self, args, name):
