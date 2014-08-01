@@ -112,9 +112,11 @@ class DockerHTTPClient(object):
             headers['Content-Type'] = 'application/json'
             kwargs['headers'] = headers
         conn = self.connection
-        encoded_args = args[0], urllib.quote(args[1])
-        conn.request(*encoded_args, **kwargs)
-        return Response(conn.getresponse(), url=encoded_args[1])
+        conn.request(*args, **kwargs)
+        return Response(conn.getresponse(), url=args[1])
+        #encoded_args = args[0], urllib.quote(args[1])
+        #conn.request(*encoded_args, **kwargs)
+        #return Response(conn.getresponse(), url=encoded_args[1])
 
     def list_containers(self, _all=True):
         resp = self.make_request(
