@@ -160,7 +160,7 @@ class DockerHTTPClient(object):
             'POST',
             '/v1.7/containers/{0}/start'.format(container_id),
             body='{}')
-        return (resp.code == 200)
+        return (resp.code == 200 or resp.code == 204)
 
     def pause_container(self, container_id):
         resp = self.make_request(

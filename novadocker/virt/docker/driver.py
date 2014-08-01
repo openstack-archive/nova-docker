@@ -347,9 +347,23 @@ class DockerDriver(driver.ComputeDriver):
         if not self.docker.stop_container(container_id):
             LOG.warning(_('Cannot stop the container, '
                           'please check docker logs'))
+            return
+        try:
+            network.teardown_network(container_id)
+            self.unplug_vifs(instance, network_info)
+        except Exception:
+            LOG.debug('Cannot destroy the container network during reboot')
+            return
+
         if not self.docker.start_container(container_id):
             LOG.warning(_('Cannot restart the container, '
                           'please check docker logs'))
+            return
+        try:
+            self.plug_vifs(instance, network_info)
+        except Exception as e:
+            LOG.warning(_('Cannot setup network on reboot: {0}').format(e))
+            return
 
     def power_on(self, context, instance, network_info, block_device_info):
         container_id = self._find_container_by_name(instance['name']).get('id')
