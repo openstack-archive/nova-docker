@@ -175,10 +175,7 @@ class DockerDriver(driver.ComputeDriver):
 
     def get_host_stats(self, refresh=False):
         hostname = socket.gethostname()
-        memory = hostinfo.get_memory_usage()
-        disk = hostinfo.get_disk_usage()
         stats = self.get_available_resource(hostname)
-        stats['hypervisor_hostname'] = stats['hypervisor_hostname']
         stats['host_hostname'] = stats['hypervisor_hostname']
         stats['host_name_label'] = stats['hypervisor_hostname']
         return stats
