@@ -113,7 +113,12 @@ class DockerHTTPClient(object):
             headers['Content-Type'] = 'application/json'
             kwargs['headers'] = headers
         conn = self.connection
-        encoded_args = args[0], urllib.quote(args[1])
+
+        url = args[1]
+        if len(args) > 2:
+            url += urllib.urlencode(args[2:])
+        encoded_args = args[0], url
+
         conn.request(*encoded_args, **kwargs)
         return Response(conn.getresponse(), url=encoded_args[1])
 
@@ -148,8 +153,8 @@ class DockerHTTPClient(object):
         data.update(args)
         resp = self.make_request(
             'POST',
-            '/v1.7/containers/create?name={0}'.format(str(name).
-                                                      encode('utf-8')),
+            '/v1.7/containers/create?',
+            ('name', str(name).encode('utf-8')),
             body=jsonutils.dumps(data))
         if resp.code != 201:
             return
@@ -182,7 +187,8 @@ class DockerHTTPClient(object):
     def inspect_image(self, image_name):
         resp = self.make_request(
             'GET',
-            '/v1.7/images/{0}/json'.format(str(image_name).encode('utf-8')))
+            '/v1.7/images/{0}/json'.format(
+            urllib.quote(str(image_name).encode('utf-8'))))
         if resp.code != 200:
             return
         return resp.to_json()
@@ -199,7 +205,8 @@ class DockerHTTPClient(object):
         timeout = 5
         resp = self.make_request(
             'POST',
-            '/v1.7/containers/{0}/stop?t={1}'.format(container_id, timeout))
+            '/v1.7/containers/{0}/stop?'.format(container_id),
+            ('t', timeout))
         return (resp.code == 204)
 
     def kill_container(self, container_id):
@@ -215,7 +222,7 @@ class DockerHTTPClient(object):
         return (resp.code == 204)
 
     def get_image(self, name, size=4096):
-        parts = str(name).encode('utf-8').rsplit(':', 1)
+        parts = map(urllib.quote, str(name).encode('utf-8').rsplit(':', 1))
         url = '/v1.13/images/{0}/get'.format(parts[0])
         resp = self.make_request('GET', url)
 
@@ -227,14 +234,14 @@ class DockerHTTPClient(object):
         return
 
     def get_image_resp(self, name):
-        parts = str(name).encode('utf-8').rsplit(':', 1)
+        parts = map(urllib.quote, str(name).encode('utf-8').rsplit(':', 1))
         url = '/v1.13/images/{0}/get'.format(parts[0])
         resp = self.make_request('GET', url)
         return resp
 
     def load_repository(self, name, data):
         url = '/v1.13/images/load'
-        self.make_request('POST', url, data)
+        self.make_request('POST', url, data=data)
 
     def load_repository_file(self, name, path):
         with open(path) as fh:
@@ -242,18 +249,23 @@ class DockerHTTPClient(object):
 
     def commit_container(self, container_id, name):
         parts = str(name).encode('utf-8').rsplit(':', 1)
-        url = '/v1.7/commit?container={0}&repo={1}'.format(container_id,
-                                                           parts[0])
+        url = '/v1.7/commit?'
+        query = [('container', container_id),
+                 ('repo', parts[0])]
+
         if len(parts) > 1:
-            url += '&tag={0}'.format(parts[1])
-        resp = self.make_request('POST', url)
+            query += (('tag', parts[1]),)
+        resp = self.make_request('POST', url, *query)
         return (resp.code == 201)
 
     def get_container_logs(self, container_id):
         resp = self.make_request(
             'POST',
-            ('/v1.7/containers/{0}/attach'
-             '?logs=1&stream=0&stdout=1&stderr=1').format(container_id))
+            '/v1.7/containers/{0}/attach?'.format(container_id),
+            ('logs', '1'),
+            ('stream', '0'),
+            ('stdout', '1'),
+            ('stderr', '1'))
         if resp.code != 200:
             return
         return resp.read()
