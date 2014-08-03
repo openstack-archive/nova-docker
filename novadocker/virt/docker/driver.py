@@ -84,8 +84,7 @@ class DockerDriver(driver.ComputeDriver):
 
     def _is_daemon_running(self):
         try:
-            self.docker.list_containers()
-            return True
+            return self.docker.ping()
         except socket.error:
             # NOTE(samalba): If the daemon is not running, we'll get a socket
             # error. The list_containers call is safe to call often, there

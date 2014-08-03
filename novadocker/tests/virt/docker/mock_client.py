@@ -233,3 +233,6 @@ class MockClient(object):
 
     def load_repository_file(self, name, path):
         pass
+
+    def ping(self):
+        return True

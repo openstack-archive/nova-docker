@@ -270,3 +270,7 @@ class DockerHTTPClient(object):
         if resp.code != 200:
             return
         return resp.read()
+
+    def ping(self):
+        resp = self.make_request('GET', '/v1.11/_ping')
+        return (resp.code == 200)
