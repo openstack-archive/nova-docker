@@ -38,6 +38,7 @@ class FakeResponse(object):
 
 
 class DockerHTTPClientTestCase(test.NoDBTestCase):
+    VERSION = "v1.13"
 
     def make_request(self, *args, **kwargs):
         mock_conn = self.mox.CreateMockAnything()
@@ -45,7 +46,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
         kwargs['headers'] = headers
 
         # args[1] == path, args[2:] == query represented as tuples
-        url = urllib.quote(args[1])
+        url = "/%s/%s" % (self.VERSION, urllib.quote(args[1]))
         if len(args) > 2:
             url += "?" + urllib.urlencode(args[2:])
         encoded_args = args[0], url
@@ -55,7 +56,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
     def test_list_containers(self):
         mock_conn = self.make_request('GET',
-                                      '/v1.7/containers/ps', ('all', '1'))
+                                      'containers/ps', ('all', '1'))
         response = FakeResponse(200, data='[]',
                                 headers={'Content-Type': 'application/json'})
         mock_conn.getresponse().AndReturn(response)
@@ -93,7 +94,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
         })
 
         mock_conn = self.make_request('POST',
-                                      '/v1.7/containers/create',
+                                      'containers/create',
                                       ('name', expected_uuid),
                                       body=expected_body)
         response = FakeResponse(201, data='{"id": "XXX"}',
@@ -130,7 +131,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
             'VolumesFrom': '',
         })
         mock_conn = self.make_request('POST',
-                                      '/v1.7/containers/create',
+                                      'containers/create',
                                       ('name', expected_uuid),
                                       body=expected_body)
         response = FakeResponse(201, data='{"id": "XXX"}',
@@ -155,7 +156,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
         expected_uuid = uuid.uuid4()
 
         mock_conn = self.make_request('POST',
-                                      '/v1.7/containers/create',
+                                      'containers/create',
                                       ('name', expected_uuid),
                                       body=mox.IgnoreArg())
         response = FakeResponse(201, data='{"ping": "pong"}',
@@ -174,7 +175,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
         expected_uuid = uuid.uuid4()
 
         mock_conn = self.make_request('POST',
-                                      '/v1.7/containers/create',
+                                      'containers/create',
                                       ('name', expected_uuid),
                                       body=mox.IgnoreArg())
         response = FakeResponse(400)
@@ -189,7 +190,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
         self.mox.VerifyAll()
 
     def test_start_container(self):
-        mock_conn = self.make_request('POST', '/v1.7/containers/XXX/start',
+        mock_conn = self.make_request('POST', 'containers/XXX/start',
                                       body='{}')
         response = FakeResponse(200,
                                 headers={'Content-Type': 'application/json'})
@@ -203,7 +204,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
         self.mox.VerifyAll()
 
     def test_start_container_bad_return_code(self):
-        mock_conn = self.make_request('POST', '/v1.7/containers/XXX/start',
+        mock_conn = self.make_request('POST', 'containers/XXX/start',
                                       body='{}')
         response = FakeResponse(400)
         mock_conn.getresponse().AndReturn(response)
@@ -216,7 +217,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
         self.mox.VerifyAll()
 
     def test_inspect_image(self):
-        mock_conn = self.make_request('GET', '/v1.7/images/XXX/json')
+        mock_conn = self.make_request('GET', 'images/XXX/json')
         response = FakeResponse(200, data='{"name": "XXX"}',
                                 headers={'Content-Type': 'application/json'})
         mock_conn.getresponse().AndReturn(response)
@@ -230,7 +231,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
         self.mox.VerifyAll()
 
     def test_inspect_image_bad_return_code(self):
-        mock_conn = self.make_request('GET', '/v1.7/images/XXX/json')
+        mock_conn = self.make_request('GET', 'images/XXX/json')
         response = FakeResponse(404)
         mock_conn.getresponse().AndReturn(response)
 
@@ -243,7 +244,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
         self.mox.VerifyAll()
 
     def test_inspect_container(self):
-        mock_conn = self.make_request('GET', '/v1.7/containers/XXX/json')
+        mock_conn = self.make_request('GET', 'containers/XXX/json')
         response = FakeResponse(200, data='{"id": "XXX"}',
                                 headers={'Content-Type': 'application/json'})
         mock_conn.getresponse().AndReturn(response)
@@ -257,7 +258,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
         self.mox.VerifyAll()
 
     def test_inspect_container_bad_return_code(self):
-        mock_conn = self.make_request('GET', '/v1.7/containers/XXX/json')
+        mock_conn = self.make_request('GET', 'containers/XXX/json')
         response = FakeResponse(404, data='inspect: No such container: XXX',
                                 headers={'Content-Type': 'text/plain'})
         mock_conn.getresponse().AndReturn(response)
@@ -271,7 +272,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
         self.mox.VerifyAll()
 
     def test_stop_container(self):
-        mock_conn = self.make_request('POST', '/v1.7/containers/XXX/stop',
+        mock_conn = self.make_request('POST', 'containers/XXX/stop',
                                       ('t', '5'))
         response = FakeResponse(204,
                                 headers={'Content-Type': 'application/json'})
@@ -285,7 +286,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
         self.mox.VerifyAll()
 
     def test_kill_container(self):
-        mock_conn = self.make_request('POST', '/v1.7/containers/XXX/kill')
+        mock_conn = self.make_request('POST', 'containers/XXX/kill')
         response = FakeResponse(204,
                                 headers={'Content-Type': 'application/json'})
         mock_conn.getresponse().AndReturn(response)
@@ -298,7 +299,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
         self.mox.VerifyAll()
 
     def test_stop_container_bad_return_code(self):
-        mock_conn = self.make_request('POST', '/v1.7/containers/XXX/stop',
+        mock_conn = self.make_request('POST', 'containers/XXX/stop',
                                       ('t', '5'))
         response = FakeResponse(400)
         mock_conn.getresponse().AndReturn(response)
@@ -311,7 +312,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
         self.mox.VerifyAll()
 
     def test_kill_container_bad_return_code(self):
-        mock_conn = self.make_request('POST', '/v1.7/containers/XXX/kill')
+        mock_conn = self.make_request('POST', 'containers/XXX/kill')
         response = FakeResponse(400)
         mock_conn.getresponse().AndReturn(response)
 
@@ -323,7 +324,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
         self.mox.VerifyAll()
 
     def test_destroy_container(self):
-        mock_conn = self.make_request('DELETE', '/v1.7/containers/XXX')
+        mock_conn = self.make_request('DELETE', 'containers/XXX')
         response = FakeResponse(204,
                                 headers={'Content-Type': 'application/json'})
         mock_conn.getresponse().AndReturn(response)
@@ -336,7 +337,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
         self.mox.VerifyAll()
 
     def test_destroy_container_bad_return_code(self):
-        mock_conn = self.make_request('DELETE', '/v1.7/containers/XXX')
+        mock_conn = self.make_request('DELETE', 'containers/XXX')
         response = FakeResponse(400)
         mock_conn.getresponse().AndReturn(response)
 
@@ -349,7 +350,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
     def test_commit_container(self):
         mock_conn = self.make_request('POST',
-                                      '/v1.7/commit',
+                                      'commit',
                                       ('container', 'XXX'),
                                       ('repo', 'ping'))
         response = FakeResponse(201,
@@ -365,7 +366,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
     def test_commit_container_bad_return_code(self):
         mock_conn = self.make_request('POST',
-                                      '/v1.7/commit',
+                                      'commit',
                                       ('container', 'XXX'),
                                       ('repo', 'ping'))
         response = FakeResponse(400,
@@ -380,7 +381,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
         self.mox.VerifyAll()
 
     def test_get_container_logs(self):
-        url = '/v1.7/containers/XXX/attach'
+        url = 'containers/XXX/attach'
         mock_conn = self.make_request('POST', url,
                                       ('logs', '1'),
                                       ('stream', '0'),
@@ -399,7 +400,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
         self.mox.VerifyAll()
 
     def test_get_container_logs_bad_return_code(self):
-        url = '/v1.7/containers/XXX/attach'
+        url = 'containers/XXX/attach'
         mock_conn = self.make_request('POST', url,
                                       ('logs', '1'),
                                       ('stream', '0'),
@@ -420,7 +421,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
         image_id = 'XXX'
         data = ["hello world"]
 
-        url = '/v1.13/images/{0}/get'.format(image_id)
+        url = 'images/{0}/get'.format(image_id)
         headers = {'Content-Type': 'application/json'}
         mock_conn = self.make_request('GET', url, headers=headers)
         response = FakeResponse(201, data)
@@ -439,7 +440,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
 
     def test_load_repository(self):
         data = ["hello", "world"]
-        url = '/v1.13/images/load'
+        url = 'images/load'
         headers = {'Content-Type': 'application/json'}
         mock_conn = self.make_request('POST', url, data=data, headers=headers)
         response = FakeResponse(200, data)
