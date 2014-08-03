@@ -95,6 +95,8 @@ class UnixHTTPConnection(httplib.HTTPConnection):
 
 
 class DockerHTTPClient(object):
+    VERSION = 'v1.13'
+
     def __init__(self, connection=None):
         self._connection = connection
 
@@ -115,7 +117,7 @@ class DockerHTTPClient(object):
         conn = self.connection
 
         # args[1] == path, args[2:] == query represented as tuples
-        url = urllib.quote(args[1])
+        url = "/%s/%s" % (self.VERSION, urllib.quote(args[1]))
         if len(args) > 2:
             url += "?" + urllib.urlencode(args[2:])
         encoded_args = args[0], url
@@ -126,7 +128,7 @@ class DockerHTTPClient(object):
     def list_containers(self, _all=True):
         resp = self.make_request(
             'GET',
-            '/v1.7/containers/ps',
+            'containers/ps',
             ('all', int(_all)))
         if resp.code == 404:
             return []
@@ -155,7 +157,7 @@ class DockerHTTPClient(object):
         data.update(args)
         resp = self.make_request(
             'POST',
-            '/v1.7/containers/create',
+            'containers/create',
             ('name', str(name).encode('utf-8')),
             body=jsonutils.dumps(data))
         if resp.code != 201:
@@ -168,28 +170,28 @@ class DockerHTTPClient(object):
     def start_container(self, container_id):
         resp = self.make_request(
             'POST',
-            '/v1.7/containers/{0}/start'.format(container_id),
+            'containers/{0}/start'.format(container_id),
             body='{}')
         return (resp.code == 200 or resp.code == 204)
 
     def pause_container(self, container_id):
         resp = self.make_request(
             'POST',
-            '/v1.12/containers/{0}/pause'.format(container_id),
+            'containers/{0}/pause'.format(container_id),
             body='{}')
         return (resp.code == 204)
 
     def unpause_container(self, container_id):
         resp = self.make_request(
             'POST',
-            '/v1.12/containers/{0}/unpause'.format(container_id),
+            'containers/{0}/unpause'.format(container_id),
             body='{}')
         return (resp.code == 204)
 
     def inspect_image(self, image_name):
         resp = self.make_request(
             'GET',
-            '/v1.7/images/{0}/json'.format(str(image_name).encode('utf-8')))
+            'images/{0}/json'.format(str(image_name).encode('utf-8')))
         if resp.code != 200:
             return
         return resp.to_json()
@@ -197,7 +199,7 @@ class DockerHTTPClient(object):
     def inspect_container(self, container_id):
         resp = self.make_request(
             'GET',
-            '/v1.7/containers/{0}/json'.format(container_id))
+            'containers/{0}/json'.format(container_id))
         if resp.code != 200:
             return {}
         return resp.to_json()
@@ -206,25 +208,25 @@ class DockerHTTPClient(object):
         timeout = 5
         resp = self.make_request(
             'POST',
-            '/v1.7/containers/{0}/stop'.format(container_id),
+            'containers/{0}/stop'.format(container_id),
             ('t', timeout))
         return (resp.code == 204)
 
     def kill_container(self, container_id):
         resp = self.make_request(
             'POST',
-            '/v1.7/containers/{0}/kill'.format(container_id))
+            'containers/{0}/kill'.format(container_id))
         return (resp.code == 204)
 
     def destroy_container(self, container_id):
         resp = self.make_request(
             'DELETE',
-            '/v1.7/containers/{0}'.format(container_id))
+            'containers/{0}'.format(container_id))
         return (resp.code == 204)
 
     def get_image(self, name, size=4096):
         parts = str(name).encode('utf-8').rsplit(':', 1)
-        url = '/v1.13/images/{0}/get'.format(parts[0])
+        url = 'images/{0}/get'.format(parts[0])
         resp = self.make_request('GET', url)
 
         while True:
@@ -236,12 +238,12 @@ class DockerHTTPClient(object):
 
     def get_image_resp(self, name):
         parts = str(name).encode('utf-8').rsplit(':', 1)
-        url = '/v1.13/images/{0}/get'.format(parts[0])
+        url = 'images/{0}/get'.format(parts[0])
         resp = self.make_request('GET', url)
         return resp
 
     def load_repository(self, name, data):
-        url = '/v1.13/images/load'
+        url = 'images/load'
         self.make_request('POST', url, data=data)
 
     def load_repository_file(self, name, path):
@@ -250,7 +252,7 @@ class DockerHTTPClient(object):
 
     def commit_container(self, container_id, name):
         parts = str(name).encode('utf-8').rsplit(':', 1)
-        url = '/v1.7/commit'
+        url = 'commit'
         query = [('container', container_id),
                  ('repo', parts[0])]
 
@@ -262,7 +264,7 @@ class DockerHTTPClient(object):
     def get_container_logs(self, container_id):
         resp = self.make_request(
             'POST',
-            '/v1.7/containers/{0}/attach'.format(container_id),
+            'containers/{0}/attach'.format(container_id),
             ('logs', '1'),
             ('stream', '0'),
             ('stdout', '1'),
@@ -272,5 +274,5 @@ class DockerHTTPClient(object):
         return resp.read()
 
     def ping(self):
-        resp = self.make_request('GET', '/v1.11/_ping')
+        resp = self.make_request('GET', '_ping')
         return (resp.code == 200)
