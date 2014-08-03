@@ -27,10 +27,10 @@ class MockClient(object):
 
         # Fake repository
         self._repository = {'image_with_cmd':
-                            {'container_config':
+                            {'ContainerConfig':
                              {'Cmd': 'echo Test'}},
                             'image_without_cmd':
-                            {'container_config':
+                            {'ContainerConfig':
                              {'Cmd': None}}}
         self._images = {}
         self._image_data = {}
@@ -114,7 +114,7 @@ class MockClient(object):
         image_name = self._image_name(image_name)
         if image_name in self._images:
             return self._images[image_name]
-        return {'container_config': {'Cmd': None}}
+        return {'ContainerConfig': {'Cmd': None}}
 
     @docker_client.filter_data
     def inspect_container(self, container_id):
