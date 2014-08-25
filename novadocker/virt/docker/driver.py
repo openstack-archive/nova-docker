@@ -372,11 +372,11 @@ class DockerDriver(driver.ComputeDriver):
             raise exception.InstanceDeployFailure(msg.format(e),
                                                   instance_id=instance['name'])
 
-    def power_off(self, instance):
+    def power_off(self, instance, timeout=0, retry_interval=0):
         container_id = self._find_container_by_name(instance['name']).get('id')
         if not container_id:
             return
-        self.docker.stop_container(container_id)
+        self.docker.stop_container(container_id, timeout)
 
     def pause(self, instance):
         """Pause the specified instance.
