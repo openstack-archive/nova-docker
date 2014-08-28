@@ -147,7 +147,6 @@ class DockerHTTPClient(object):
             'Tty': True,
             'OpenStdin': True,
             'StdinOnce': False,
-            'Env': None,
             'Cmd': [],
             'Dns': None,
             'Image': None,
@@ -155,6 +154,9 @@ class DockerHTTPClient(object):
             'VolumesFrom': '',
         }
         data.update(args)
+        if not 'Env' in data:
+            data['Env'] = None
+
         resp = self.make_request(
             'POST',
             'containers/create',
