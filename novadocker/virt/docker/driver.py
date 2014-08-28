@@ -24,6 +24,7 @@ import uuid
 
 from oslo.config import cfg
 
+from nova.api.metadata import base as instance_metadata
 from nova.compute import flavors
 from nova.compute import power_state
 from nova.compute import task_states
@@ -282,7 +283,13 @@ class DockerDriver(driver.ComputeDriver):
             'Memory': self._get_memory_limit_bytes(instance),
             'CpuShares': self._get_cpu_shares(instance),
             'NetworkDisabled': True,
+            'Env': [],
         }
+
+        inst_md = instance_metadata.InstanceMetadata(instance)
+        for mdname, mdval in inst_md.launch_metadata.items():
+            if mdname.startswith('ENV_'):
+                args['Env'].append('%s=%s' % (mdname[4:], mdval))
 
         image = self.docker.inspect_image(image_name)
         if not image:
