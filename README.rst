@@ -43,6 +43,18 @@ In nova.conf::
 Uploading Images to Glance
 --------------------------
 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1. Enable the driver in Glance's configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In glance-api.conf::
+
+  container_formats=ami,ari,aki,bare,ovf,ova,docker
+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2. Save docker images to Glance
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 Images may now be saved directly to Glance::
 
   $ docker pull busybox
