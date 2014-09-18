@@ -442,7 +442,7 @@ class DockerHTTPClientTestCase(test.NoDBTestCase):
         data = ["hello", "world"]
         url = 'images/load'
         headers = {'Content-Type': 'application/json'}
-        mock_conn = self.make_request('POST', url, data=data, headers=headers)
+        mock_conn = self.make_request('POST', url, body=data, headers=headers)
         response = FakeResponse(200, data)
         mock_conn.getresponse().AndReturn(response)
 
