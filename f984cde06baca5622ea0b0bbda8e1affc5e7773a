@@ -1,0 +1,10 @@
+Verified+2: Jenkins
+Code-Review+2: Eric Windisch <ewindisch@docker.com>
+Workflow+1: Eric Windisch <ewindisch@docker.com>
+Code-Review+1: Dan Radez <dradez@redhat.com>
+Code-Review+1: ChangBo Guo(gcb) <glongwave@gmail.com>
+Submitted-by: Jenkins
+Submitted-at: Thu, 18 Sep 2014 18:33:40 +0000
+Reviewed-on: https://review.openstack.org/115507
+Project: stackforge/nova-docker
+Branch: refs/heads/master
