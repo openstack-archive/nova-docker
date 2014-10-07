@@ -97,7 +97,8 @@ class MockClient(object):
         self._containers[container_id] = {
             'id': container_id,
             'running': False,
-            'config': data
+            'config': data,
+            'name': name
         }
         return container_id
 
@@ -119,14 +120,18 @@ class MockClient(object):
 
     @docker_client.filter_data
     def inspect_container(self, container_id):
-        if container_id not in self._containers:
-            return
-        container = self._containers[container_id]
+        container = self._containers.get(container_id)
+        if not container:
+            for container in self._containers.itervalues():
+                if container['name'] == container_id:
+                    break
+            else:
+                return {}
         info = {
             'Args': [],
             'Config': container['config'],
             'Created': str(timeutils.utcnow()),
-            'ID': container_id,
+            'Id': container['id'],
             'Image': self._fake_id(),
             'NetworkSettings': {
                 'Bridge': '',
