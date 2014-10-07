@@ -172,12 +172,12 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
             ex.assert_has_calls(calls)
 
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
-                       '_find_container_by_name',
+                       '_find_container',
                        return_value={'id': 'fake_id'})
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
                        '_find_container_pid',
                        return_value=1234)
-    def test_attach_vifs(self, mock_find_by_name, mock_find_pid):
+    def test_attach_vifs(self, mock_find_container, mock_find_pid):
         calls = [
             mock.call('ln', '-sf', '/proc/1234/ns/net',
                       '/var/run/netns/fake_id', run_as_root=True),
@@ -209,12 +209,12 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
             ex.assert_has_calls(calls)
 
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
-                       '_find_container_by_name',
+                       '_find_container',
                        return_value={'id': 'fake_id'})
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
                        '_find_container_pid',
                        return_value=1234)
-    def test_attach_vifs_two_interfaces(self, mock_find_by_name,
+    def test_attach_vifs_two_interfaces(self, mock_find_container,
                                         mock_find_pid):
         calls = [
             mock.call('ln', '-sf', '/proc/1234/ns/net',
