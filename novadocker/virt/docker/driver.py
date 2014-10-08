@@ -175,6 +175,10 @@ class DockerDriver(driver.ComputeDriver):
         stats['host_name_label'] = stats['hypervisor_hostname']
         return stats
 
+    def get_available_nodes(self, refresh=False):
+        hostname = socket.gethostname()
+        return [hostname]
+
     def get_available_resource(self, nodename):
         if not hasattr(self, '_nodename'):
             self._nodename = nodename
