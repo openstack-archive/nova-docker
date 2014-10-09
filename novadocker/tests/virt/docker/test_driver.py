@@ -17,12 +17,12 @@ import contextlib
 import socket
 
 import mock
+from oslo.utils import units
 
 from nova.compute import task_states
 from nova import context
 from nova import exception
 from nova.openstack.common import jsonutils
-from nova.openstack.common import units
 from nova import test
 import nova.tests.image.fake
 from nova.tests import matchers
