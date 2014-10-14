@@ -23,6 +23,7 @@ import time
 import uuid
 
 from oslo.config import cfg
+from oslo.serialization import jsonutils
 from oslo.utils import importutils
 from oslo.utils import units
 
@@ -33,7 +34,6 @@ from nova import exception
 from nova.i18n import _
 from nova.image import glance
 from nova.openstack.common import fileutils
-from nova.openstack.common import jsonutils
 from nova.openstack.common import log
 from nova import utils
 from nova.virt import driver
