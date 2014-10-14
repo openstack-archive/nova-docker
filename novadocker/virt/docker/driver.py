@@ -185,8 +185,8 @@ class DockerDriver(driver.ComputeDriver):
         if nodename != self._nodename:
             LOG.error(_('Hostname has changed from %(old)s to %(new)s. '
                         'A restart is required to take effect.'
-                        ) % {'old': self._nodename,
-                             'new': nodename})
+                        ), {'old': self._nodename,
+                            'new': nodename})
 
         memory = hostinfo.get_memory_usage()
         disk = hostinfo.get_disk_usage()
@@ -241,7 +241,7 @@ class DockerDriver(driver.ComputeDriver):
 
     def _pull_missing_image(self, context, image_meta, instance):
         msg = 'Image name "%s" does not exist, fetching it...'
-        LOG.debug(msg % image_meta['name'])
+        LOG.debug(msg, image_meta['name'])
 
         # TODO(imain): It would be nice to do this with file like object
         # passing but that seems a bit complex right now.
@@ -358,7 +358,7 @@ class DockerDriver(driver.ComputeDriver):
         try:
             self.plug_vifs(instance, network_info)
         except Exception as e:
-            LOG.warning(_('Cannot setup network on reboot: {0}').format(e))
+            LOG.warning(_('Cannot setup network on reboot: %s'), e)
             return
 
     def power_on(self, context, instance, network_info, block_device_info):
