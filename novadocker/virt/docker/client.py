@@ -71,7 +71,7 @@ class Response(object):
         # Lets try to parse the response anyway since json is requested.
         if self._response.getheader('Content-Type') != 'application/json':
             LOG.debug("Content-Type of response is not application/json"
-                      " (Docker bug?). Requested URL %s" % self.url)
+                      " (Docker bug?). Requested URL %s", self.url)
 
     @filter_data
     def _decode_json(self, data, default=None):

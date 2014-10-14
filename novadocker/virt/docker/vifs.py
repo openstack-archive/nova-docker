@@ -119,7 +119,7 @@ class DockerGenericVIFDriver(object):
 
             iface = (CONF.flat_interface or
                      vif['network']['meta']['bridge_interface'])
-            LOG.debug('Ensuring bridge for %s - %s' % (iface, bridge))
+            LOG.debug('Ensuring bridge for %s - %s', iface, bridge)
             linux_net.LinuxBridgeInterfaceDriver.ensure_bridge(
                 bridge,
                 iface,
