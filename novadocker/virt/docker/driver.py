@@ -23,6 +23,10 @@ import time
 import uuid
 
 from oslo.config import cfg
+<<<<<<< HEAD
+=======
+from oslo.serialization import jsonutils
+>>>>>>> e01577f... Update to oslo serialization and utils
 from oslo.utils import importutils
 from oslo.utils import units
 
@@ -33,7 +37,10 @@ from nova import exception
 from nova.i18n import _
 from nova.image import glance
 from nova.openstack.common import fileutils
+<<<<<<< HEAD
 from nova.openstack.common import jsonutils
+=======
+>>>>>>> e01577f... Update to oslo serialization and utils
 from nova.openstack.common import log
 from nova import utils
 from nova.virt import driver

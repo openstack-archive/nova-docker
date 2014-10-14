@@ -17,12 +17,19 @@ import contextlib
 import socket
 
 import mock
+<<<<<<< HEAD
+=======
+from oslo.serialization import jsonutils
+>>>>>>> e01577f... Update to oslo serialization and utils
 from oslo.utils import units
 
 from nova.compute import task_states
 from nova import context
 from nova import exception
+<<<<<<< HEAD
 from nova.openstack.common import jsonutils
+=======
+>>>>>>> e01577f... Update to oslo serialization and utils
 from nova import test
 import nova.tests.image.fake
 from nova.tests import matchers
