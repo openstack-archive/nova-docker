@@ -16,7 +16,8 @@
 import time
 import uuid
 
-from nova.openstack.common import timeutils
+from oslo.utils import timeutils
+
 import novadocker.virt.docker.client as docker_client
 
 
