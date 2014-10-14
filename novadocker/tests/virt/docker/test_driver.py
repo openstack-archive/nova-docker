@@ -13,16 +13,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import __builtin__
 import contextlib
 import socket
 
 import mock
+from oslo.serialization import jsonutils
 from oslo.utils import units
 
 from nova.compute import task_states
 from nova import context
 from nova import exception
-from nova.openstack.common import jsonutils
 from nova import test
 import nova.tests.image.fake
 from nova.tests import matchers

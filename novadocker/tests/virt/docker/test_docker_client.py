@@ -15,11 +15,11 @@
 
 import collections
 import mox
+from oslo.serialization import jsonutils
 import urllib
 import uuid
 
 
-from nova.openstack.common import jsonutils
 from nova import test
 import novadocker.virt.docker.client as docker_client
 

@@ -18,9 +18,9 @@ import socket
 import urllib
 
 from eventlet.green import httplib
+from oslo.serialization import jsonutils
 import six
 
-from nova.openstack.common import jsonutils
 from nova.openstack.common import log as logging
 
 
