@@ -91,9 +91,16 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         return instance_ref, network_info
 
     def test_get_host_stats(self):
+        memory = {
+            'total': 4 * units.Mi,
+            'used': 1 * units.Mi
+        }
         self.mox.StubOutWithMock(socket, 'gethostname')
+        self.mox.StubOutWithMock(hostinfo, 'get_memory_usage')
         socket.gethostname().AndReturn('foo')
+        hostinfo.get_memory_usage().AndReturn(memory)
         socket.gethostname().AndReturn('bar')
+        hostinfo.get_memory_usage().AndReturn(memory)
         self.mox.ReplayAll()
         self.assertEqual('foo',
                          self.connection.get_host_stats()['host_hostname'])
@@ -184,7 +191,7 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
     def test_create_container_net_setup_fails(self, mock_plug_vifs):
         self.assertRaises(exception.InstanceDeployFailure,
                           self.test_create_container)
-        self.assertEqual(0, len(self.mock_client.list_containers()))
+        self.assertEqual(0, len(self.mock_client.containers()))
 
     def test_create_container_wrong_image(self):
         instance_href = utils.get_test_instance()
@@ -287,7 +294,7 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
             self.assertEqual(pid, '12345')
 
     @mock.patch.object(novadocker.tests.virt.docker.mock_client.MockClient,
-                       'load_repository')
+                       'load_image')
     @mock.patch.object(novadocker.tests.virt.docker.mock_client.MockClient,
                        'get_image')
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
