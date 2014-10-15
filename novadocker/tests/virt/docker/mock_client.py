@@ -13,12 +13,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import inspect
 import time
 import uuid
 
 from oslo.utils import timeutils
+from six import moves
 
-import novadocker.virt.docker.client as docker_client
+from novadocker.virt.docker import client as docker_client
 
 
 class MockClient(object):
@@ -35,6 +37,12 @@ class MockClient(object):
                              {'Cmd': None}}}
         self._images = {}
         self._image_data = {}
+        self._setup_decorators()
+
+    def _setup_decorators(self):
+        for name, member in inspect.getmembers(self, inspect.ismethod):
+            if not name.startswith('_'):
+                setattr(self, name, docker_client.filter_data(member))
 
     def _fake_id(self):
         return uuid.uuid4().hex + uuid.uuid4().hex
@@ -55,8 +63,7 @@ class MockClient(object):
     def _is_daemon_running(self):
         return True
 
-    @docker_client.filter_data
-    def list_containers(self, _all=True):
+    def containers(self, _all=True):
         containers = []
         for container_id in self._containers.iterkeys():
             containers.append({
@@ -69,8 +76,8 @@ class MockClient(object):
             })
         return containers
 
-    def create_container(self, args, name):
-        self.name = name
+    def create_container(self, image_name, args):
+        self.name = args['name']
         data = {
             'Hostname': '',
             'User': '',
@@ -95,19 +102,18 @@ class MockClient(object):
             return None
         container_id = self._fake_id()
         self._containers[container_id] = {
-            'id': container_id,
+            'Id': container_id,
             'running': False,
-            'config': data
+            'Config': data
         }
         return container_id
 
-    def start_container(self, container_id):
+    def start(self, container_id):
         if container_id not in self._containers:
             return False
         self._containers[container_id]['running'] = True
         return True
 
-    @docker_client.filter_data
     def inspect_image(self, image_name):
         if not self._is_image_exists(image_name):
             return None
@@ -117,16 +123,15 @@ class MockClient(object):
             return self._images[image_name]
         return {'ContainerConfig': {'Cmd': None}}
 
-    @docker_client.filter_data
     def inspect_container(self, container_id):
         if container_id not in self._containers:
             return
         container = self._containers[container_id]
         info = {
             'Args': [],
-            'Config': container['config'],
+            'Config': container['Config'],
             'Created': str(timeutils.utcnow()),
-            'ID': container_id,
+            'Id': container_id,
             'Image': self._fake_id(),
             'NetworkSettings': {
                 'Bridge': '',
@@ -149,19 +154,19 @@ class MockClient(object):
         }
         return info
 
-    def stop_container(self, container_id, timeout=None):
+    def stop(self, container_id, timeout=None):
         if container_id not in self._containers:
             return False
         self._containers[container_id]['running'] = False
         return True
 
-    def kill_container(self, container_id):
+    def kill(self, container_id):
         if container_id not in self._containers:
             return False
         self._containers[container_id]['running'] = False
         return True
 
-    def destroy_container(self, container_id):
+    def remove_container(self, container_id):
         if container_id not in self._containers:
             return False
 
@@ -172,30 +177,21 @@ class MockClient(object):
         del self._containers[container_id]
         return True
 
-    def unpause_container(self, container_id):
+    def unpause(self, container_id):
         if container_id not in self._containers:
             return False
 
         self._containers[container_id]['paused'] = False
         return True
 
-    def pause_container(self, container_id):
+    def pause(self, container_id):
         if container_id not in self._containers:
             return False
 
         self._containers[container_id]['paused'] = True
         return True
 
-    def pull_repository(self, name):
-        image_name = self._image_name(name)
-        if image_name in self._repository:
-            self._images[image_name] = self._repository[image_name]
-        return True
-
-    def push_repository(self, name, headers=None):
-        return True
-
-    def commit_container(self, container_id, name):
+    def commit(self, container_id, repository=None):
         if container_id not in self._containers:
             return False
         return True
@@ -217,19 +213,14 @@ class MockClient(object):
             'Fusce nec pellentesque nisl.'])
 
     def get_image(self, name):
+        if 'snap-1:latest' in name:
+            return open('/dev/null', 'rb')
         if (name not in self._images or
            name not in self._image_data):
-            raise Exception
-        return self._image_data[name]
+            raise Exception("Image not found - %s" % name)
+        return moves.StringIO(self._image_data[name])
 
-    def get_image_resp(self, name):
-        return open('/dev/null', 'rb')
-
-    def save_repository_file(self, name, path):
-        with open(path, 'w+'):
-            pass
-
-    def load_repository(self, name, data):
+    def load_image(self, name, data):
         self._image_data[name] = data
 
     def load_repository_file(self, name, path):
