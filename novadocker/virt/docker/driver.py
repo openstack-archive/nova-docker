@@ -83,14 +83,11 @@ class DockerDriver(driver.ComputeDriver):
                   ' (check the rights on /var/run/docker.sock)'))
 
     def _is_daemon_running(self):
-        try:
-            return self.docker.ping()
-        except socket.error:
-            return False
+        return self.docker.ping()
 
     def list_instances(self, inspect=False):
         res = []
-        for container in self.docker.list_containers():
+        for container in self.docker.containers():
             info = self.docker.inspect_container(container['id'])
             if not info:
                 continue
@@ -266,14 +263,14 @@ class DockerDriver(driver.ComputeDriver):
         if not container_id:
             return
 
-        self.docker.start_container(container_id)
+        self.docker.start(container_id)
         try:
             self.plug_vifs(instance, network_info)
             self._attach_vifs(instance, network_info)
         except Exception as e:
             msg = _('Cannot setup network: {0}')
-            self.docker.kill_container(container_id)
-            self.docker.destroy_container(container_id)
+            self.docker.kill(container_id)
+            self.docker.remove_container(container_id)
             raise exception.InstanceDeployFailure(msg.format(e),
                                                   instance_id=instance['name'])
 
@@ -298,7 +295,7 @@ class DockerDriver(driver.ComputeDriver):
                 image_meta.get('properties', {}).get('os_command_line')):
             args['Cmd'] = image_meta['properties'].get('os_command_line')
 
-        container_id = self._create_container(instance, args)
+        container_id = self._create_container(instance, image_name, args)
         if not container_id:
             raise exception.InstanceDeployFailure(
                 _('Cannot create container'),
@@ -317,21 +314,21 @@ class DockerDriver(driver.ComputeDriver):
         container_id = self._find_container_by_name(instance['name']).get('id')
         if not container_id:
             return
-        self.docker.stop_container(container_id)
+        self.docker.stop(container_id)
 
     def destroy(self, context, instance, network_info, block_device_info=None,
-                destroy_disks=True):
+                destroy_disks=True, migrate_data=None):
         self.soft_delete(instance)
         self.cleanup(context, instance, network_info,
                      block_device_info, destroy_disks)
 
     def cleanup(self, context, instance, network_info, block_device_info=None,
-                destroy_disks=True):
+                destroy_disks=True, migrate_data=None, destroy_vifs=True):
         """Cleanup after instance being destroyed by Hypervisor."""
         container_id = self._find_container_by_name(instance['name']).get('id')
         if not container_id:
             return
-        self.docker.destroy_container(container_id)
+        self.docker.remove_container(container_id)
         network.teardown_network(container_id)
         self.unplug_vifs(instance, network_info)
 
@@ -340,7 +337,7 @@ class DockerDriver(driver.ComputeDriver):
         container_id = self._find_container_by_name(instance['name']).get('id')
         if not container_id:
             return
-        if not self.docker.stop_container(container_id):
+        if not self.docker.stop(container_id):
             LOG.warning(_('Cannot stop the container, '
                           'please check docker logs'))
             return
@@ -351,7 +348,7 @@ class DockerDriver(driver.ComputeDriver):
             LOG.debug('Cannot destroy the container network during reboot')
             return
 
-        if not self.docker.start_container(container_id):
+        if not self.docker.start(container_id):
             LOG.warning(_('Cannot restart the container, '
                           'please check docker logs'))
             return
@@ -361,18 +358,19 @@ class DockerDriver(driver.ComputeDriver):
             LOG.warning(_('Cannot setup network on reboot: {0}').format(e))
             return
 
-    def power_on(self, context, instance, network_info, block_device_info):
+    def power_on(self, context, instance, network_info,
+                 block_device_info=None):
         container_id = self._find_container_by_name(instance['name']).get('id')
         if not container_id:
             return
-        self.docker.start_container(container_id)
+        self.docker.start(container_id)
         try:
             self.plug_vifs(instance, network_info)
             self._attach_vifs(instance, network_info)
         except Exception as e:
             msg = _('Cannot setup network: {0}')
-            self.docker.kill_container(container_id)
-            self.docker.destroy_container(container_id)
+            self.docker.kill(container_id)
+            self.docker.remove_container(container_id)
             raise exception.InstanceDeployFailure(msg.format(e),
                                                   instance_id=instance['name'])
 
@@ -380,7 +378,7 @@ class DockerDriver(driver.ComputeDriver):
         container_id = self._find_container_by_name(instance['name']).get('id')
         if not container_id:
             return
-        self.docker.stop_container(container_id, timeout)
+        self.docker.stop(container_id, timeout)
 
     def pause(self, instance):
         """Pause the specified instance.
@@ -429,7 +427,7 @@ class DockerDriver(driver.ComputeDriver):
         default_tag = (':' not in name)
         commit_name = name if not default_tag else name + ':latest'
 
-        self.docker.commit_container(container_id, commit_name)
+        self.docker.commit(container_id, repository=commit_name)
 
         update_task_state(task_state=task_states.IMAGE_UPLOADING,
                           expected_state=task_states.IMAGE_PENDING_UPLOAD)
@@ -452,7 +450,7 @@ class DockerDriver(driver.ComputeDriver):
             metadata['properties']['os_type'] = instance['os_type']
 
         try:
-            fh = self.docker.get_image_resp(commit_name)
+            fh = self.docker.get_image(commit_name)
             image_service.update(context, image_href, metadata, fh)
         except Exception as e:
             msg = _('Error saving image: {0}')
@@ -477,9 +475,10 @@ class DockerDriver(driver.ComputeDriver):
         flavor = flavors.extract_flavor(instance)
         return int(flavor['vcpus']) * 1024
 
-    def _create_container(self, instance, args):
+    def _create_container(self, instance, image_name, args):
         name = "nova-" + instance['uuid']
-        return self.docker.create_container(args, name)
+        args.update({'name': name})
+        return self.docker.create_container(image_name, args)
 
     def get_host_uptime(self, host):
         return hostutils.sys_uptime()
