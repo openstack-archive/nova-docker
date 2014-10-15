@@ -91,9 +91,16 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         return instance_ref, network_info
 
     def test_get_host_stats(self):
+        memory = {
+            'total': 4 * units.Mi,
+            'used': 1 * units.Mi
+        }
         self.mox.StubOutWithMock(socket, 'gethostname')
+        self.mox.StubOutWithMock(hostinfo, 'get_memory_usage')
         socket.gethostname().AndReturn('foo')
+        hostinfo.get_memory_usage().AndReturn(memory)
         socket.gethostname().AndReturn('bar')
+        hostinfo.get_memory_usage().AndReturn(memory)
         self.mox.ReplayAll()
         self.assertEqual('foo',
                          self.connection.get_host_stats()['host_hostname'])
@@ -184,7 +191,7 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
     def test_create_container_net_setup_fails(self, mock_plug_vifs):
         self.assertRaises(exception.InstanceDeployFailure,
                           self.test_create_container)
-        self.assertEqual(0, len(self.mock_client.list_containers()))
+        self.assertEqual(0, len(self.mock_client.containers()))
 
     def test_create_container_wrong_image(self):
         instance_href = utils.get_test_instance()
@@ -272,8 +279,7 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         self.connection.spawn(self.context, instance_href, image_info,
                               'fake_files', 'fake_password')
 
-        with mock.patch('novadocker.tests.virt.docker.mock_client.'
-                        'MockClient.inspect_container',
+        with mock.patch.object(self.mock_client, 'inspect_container',
                         return_value={}):
             instances = self.connection.list_instances()
             self.assertFalse(instances)
@@ -286,14 +292,10 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
             pid = driver._find_container_pid("fake_container_id")
             self.assertEqual(pid, '12345')
 
-    @mock.patch.object(novadocker.tests.virt.docker.mock_client.MockClient,
-                       'load_repository')
-    @mock.patch.object(novadocker.tests.virt.docker.mock_client.MockClient,
-                       'get_image')
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
                        '_find_container_by_name',
                        return_value={'id': 'fake_id'})
-    def test_snapshot(self, byname_mock, getimage_mock, loadrepo_mock):
+    def test_snapshot(self, byname_mock):
         # Use mix-case to test that mixed-case image names succeed.
         snapshot_name = 'tEsT-SnAp'
 
@@ -320,16 +322,19 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         image_service = nova.tests.image.fake.FakeImageService()
         recv_meta = image_service.create(context, sent_meta)
 
-        self.connection.snapshot(self.context, instance_ref, recv_meta['id'],
-                                 func_call_matcher.call)
+        with mock.patch.object(self.mock_client, 'load_image'):
+            with mock.patch.object(self.mock_client, 'get_image'):
+                self.connection.snapshot(self.context, instance_ref,
+                                         recv_meta['id'],
+                                         func_call_matcher.call)
 
-        snapshot = image_service.show(context, recv_meta['id'])
-        # self.assertIsNone(func_call_matcher.match())
-        self.assertEqual(snapshot['properties']['image_state'], 'available')
-        self.assertEqual(snapshot['status'], 'active')
-        self.assertEqual(snapshot['disk_format'], 'raw')
-        self.assertEqual(snapshot['container_format'], 'docker')
-        self.assertEqual(snapshot['name'], snapshot_name)
+                snapshot = image_service.show(context, recv_meta['id'])
+                self.assertEqual(snapshot['properties']['image_state'],
+                                 'available')
+                self.assertEqual(snapshot['status'], 'active')
+                self.assertEqual(snapshot['disk_format'], 'raw')
+                self.assertEqual(snapshot['container_format'], 'docker')
+                self.assertEqual(snapshot['name'], snapshot_name)
 
     def test_get_image_name(self):
         instance_ref = utils.get_test_instance()
