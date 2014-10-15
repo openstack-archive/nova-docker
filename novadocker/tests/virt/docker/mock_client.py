@@ -18,8 +18,6 @@ import uuid
 
 from oslo.utils import timeutils
 
-import novadocker.virt.docker.client as docker_client
-
 
 class MockClient(object):
     def __init__(self, endpoint=None):
@@ -55,7 +53,6 @@ class MockClient(object):
     def _is_daemon_running(self):
         return True
 
-    @docker_client.filter_data
     def list_containers(self, _all=True):
         containers = []
         for container_id in self._containers.iterkeys():
@@ -107,7 +104,6 @@ class MockClient(object):
         self._containers[container_id]['running'] = True
         return True
 
-    @docker_client.filter_data
     def inspect_image(self, image_name):
         if not self._is_image_exists(image_name):
             return None
@@ -117,7 +113,6 @@ class MockClient(object):
             return self._images[image_name]
         return {'ContainerConfig': {'Cmd': None}}
 
-    @docker_client.filter_data
     def inspect_container(self, container_id):
         if container_id not in self._containers:
             return
