@@ -1,4 +1,5 @@
 # Copyright (c) 2013 dotCloud, Inc.
+# Copyright 2014 IBM Corp.
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -83,14 +84,11 @@ class DockerDriver(driver.ComputeDriver):
                   ' (check the rights on /var/run/docker.sock)'))
 
     def _is_daemon_running(self):
-        try:
-            return self.docker.ping()
-        except socket.error:
-            return False
+        return self.docker.ping()
 
     def list_instances(self, inspect=False):
         res = []
-        for container in self.docker.list_containers():
+        for container in self.docker.containers():
             info = self.docker.inspect_container(container['id'])
             if not info:
                 continue
@@ -109,7 +107,7 @@ class DockerDriver(driver.ComputeDriver):
         """Plug VIFs into container."""
         if not network_info:
             return
-        container_id = self._find_container_by_name(instance['name']).get('id')
+        container_id = self._get_container_id(instance)
         if not container_id:
             return
         netns_path = '/var/run/netns'
@@ -139,6 +137,9 @@ class DockerDriver(driver.ComputeDriver):
             if info['Config'].get('Hostname') == name:
                 return info
         return {}
+
+    def _get_container_id(self, instance):
+        return self._find_container_by_name(instance['name']).get('id')
 
     def get_info(self, instance):
         container = self._find_container_by_name(instance['name'])
@@ -261,19 +262,17 @@ class DockerDriver(driver.ComputeDriver):
 
         return self.docker.inspect_image(image_meta['name'])
 
-    def _start_container(self, instance, network_info=None):
-        container_id = self._find_container_by_name(instance['name']).get('id')
-        if not container_id:
+    def _start_container(self, container_id, instance, network_info=None):
+        self.docker.start(container_id)
+        if not network_info:
             return
-
-        self.docker.start_container(container_id)
         try:
             self.plug_vifs(instance, network_info)
             self._attach_vifs(instance, network_info)
         except Exception as e:
             msg = _('Cannot setup network: {0}')
-            self.docker.kill_container(container_id)
-            self.docker.destroy_container(container_id)
+            self.docker.kill(container_id)
+            self.docker.remove_container(container_id)
             raise exception.InstanceDeployFailure(msg.format(e),
                                                   instance_id=instance['name'])
 
@@ -281,11 +280,10 @@ class DockerDriver(driver.ComputeDriver):
               admin_password, network_info=None, block_device_info=None):
         image_name = self._get_image_name(context, instance, image_meta)
         args = {
-            'Hostname': instance['name'],
-            'Image': image_name,
-            'Memory': self._get_memory_limit_bytes(instance),
-            'CpuShares': self._get_cpu_shares(instance),
-            'NetworkDisabled': True,
+            'hostname': instance['name'],
+            'mem_limit': self._get_memory_limit_bytes(instance),
+            'cpu_shares': self._get_cpu_shares(instance),
+            'network_disabled': True,
         }
 
         image = self.docker.inspect_image(image_name)
@@ -298,49 +296,49 @@ class DockerDriver(driver.ComputeDriver):
                 image_meta.get('properties', {}).get('os_command_line')):
             args['Cmd'] = image_meta['properties'].get('os_command_line')
 
-        container_id = self._create_container(instance, args)
+        container_id = self._create_container(instance, image_name, args)
         if not container_id:
             raise exception.InstanceDeployFailure(
                 _('Cannot create container'),
                 instance_id=instance['name'])
 
-        self._start_container(instance, network_info)
+        self._start_container(container_id, instance, network_info)
 
     def restore(self, instance):
-        container_id = self._find_container_by_name(instance['name']).get('id')
+        container_id = self._get_container_id(instance)
         if not container_id:
             return
 
-        self._start_container(instance)
+        self._start_container(container_id, instance)
 
     def soft_delete(self, instance):
-        container_id = self._find_container_by_name(instance['name']).get('id')
+        container_id = self._get_container_id(instance)
         if not container_id:
             return
-        self.docker.stop_container(container_id)
+        self.docker.stop(container_id)
 
     def destroy(self, context, instance, network_info, block_device_info=None,
-                destroy_disks=True):
+                destroy_disks=True, migrate_data=None):
         self.soft_delete(instance)
         self.cleanup(context, instance, network_info,
                      block_device_info, destroy_disks)
 
     def cleanup(self, context, instance, network_info, block_device_info=None,
-                destroy_disks=True):
+                destroy_disks=True, migrate_data=None, destroy_vifs=True):
         """Cleanup after instance being destroyed by Hypervisor."""
-        container_id = self._find_container_by_name(instance['name']).get('id')
+        container_id = self._get_container_id(instance)
         if not container_id:
             return
-        self.docker.destroy_container(container_id)
+        self.docker.remove_container(container_id)
         network.teardown_network(container_id)
         self.unplug_vifs(instance, network_info)
 
     def reboot(self, context, instance, network_info, reboot_type,
                block_device_info=None, bad_volumes_callback=None):
-        container_id = self._find_container_by_name(instance['name']).get('id')
+        container_id = self._get_container_id(instance)
         if not container_id:
             return
-        if not self.docker.stop_container(container_id):
+        if not self.docker.stop(container_id):
             LOG.warning(_('Cannot stop the container, '
                           'please check docker logs'))
             return
@@ -351,7 +349,7 @@ class DockerDriver(driver.ComputeDriver):
             LOG.debug('Cannot destroy the container network during reboot')
             return
 
-        if not self.docker.start_container(container_id):
+        if not self.docker.start(container_id):
             LOG.warning(_('Cannot restart the container, '
                           'please check docker logs'))
             return
@@ -361,26 +359,27 @@ class DockerDriver(driver.ComputeDriver):
             LOG.warning(_('Cannot setup network on reboot: {0}').format(e))
             return
 
-    def power_on(self, context, instance, network_info, block_device_info):
-        container_id = self._find_container_by_name(instance['name']).get('id')
+    def power_on(self, context, instance, network_info,
+                 block_device_info=None):
+        container_id = self._get_container_id(instance)
         if not container_id:
             return
-        self.docker.start_container(container_id)
+        self.docker.start(container_id)
         try:
             self.plug_vifs(instance, network_info)
             self._attach_vifs(instance, network_info)
         except Exception as e:
             msg = _('Cannot setup network: {0}')
-            self.docker.kill_container(container_id)
-            self.docker.destroy_container(container_id)
+            self.docker.kill(container_id)
+            self.docker.remove_container(container_id)
             raise exception.InstanceDeployFailure(msg.format(e),
                                                   instance_id=instance['name'])
 
     def power_off(self, instance, timeout=0, retry_interval=0):
-        container_id = self._find_container_by_name(instance['name']).get('id')
+        container_id = self._get_container_id(instance)
         if not container_id:
             return
-        self.docker.stop_container(container_id, timeout)
+        self.docker.stop(container_id, timeout)
 
     def pause(self, instance):
         """Pause the specified instance.
@@ -388,8 +387,8 @@ class DockerDriver(driver.ComputeDriver):
         :param instance: nova.objects.instance.Instance
         """
         try:
-            cont_id = self._find_container_by_name(instance['name']).get('id')
-            if not self.docker.pause_container(cont_id):
+            cont_id = self._get_container_id(instance)
+            if not self.docker.pause(cont_id):
                 raise exception.NovaException
         except Exception as e:
             msg = _('Cannot pause container: {0}')
@@ -402,8 +401,8 @@ class DockerDriver(driver.ComputeDriver):
         :param instance: nova.objects.instance.Instance
         """
         try:
-            cont_id = self._find_container_by_name(instance['name']).get('id')
-            if not self.docker.unpause_container(cont_id):
+            cont_id = self._get_container_id(instance)
+            if not self.docker.unpause(cont_id):
                 raise exception.NovaException
         except Exception as e:
             msg = _('Cannot unpause container: {0}')
@@ -411,13 +410,13 @@ class DockerDriver(driver.ComputeDriver):
                                           instance_id=instance['name'])
 
     def get_console_output(self, context, instance):
-        container_id = self._find_container_by_name(instance.name).get('id')
+        container_id = self._get_container_id(instance)
         if not container_id:
             return
         return self.docker.get_container_logs(container_id)
 
     def snapshot(self, context, instance, image_href, update_task_state):
-        container_id = self._find_container_by_name(instance['name']).get('id')
+        container_id = self._get_container_id(instance)
         if not container_id:
             raise exception.InstanceNotRunning(instance_id=instance['uuid'])
 
@@ -429,7 +428,7 @@ class DockerDriver(driver.ComputeDriver):
         default_tag = (':' not in name)
         commit_name = name if not default_tag else name + ':latest'
 
-        self.docker.commit_container(container_id, commit_name)
+        self.docker.commit(container_id, repository=commit_name)
 
         update_task_state(task_state=task_states.IMAGE_UPLOADING,
                           expected_state=task_states.IMAGE_PENDING_UPLOAD)
@@ -452,7 +451,7 @@ class DockerDriver(driver.ComputeDriver):
             metadata['properties']['os_type'] = instance['os_type']
 
         try:
-            fh = self.docker.get_image_resp(commit_name)
+            fh = self.docker.get_image(commit_name)
             image_service.update(context, image_href, metadata, fh)
         except Exception as e:
             msg = _('Error saving image: {0}')
@@ -477,9 +476,10 @@ class DockerDriver(driver.ComputeDriver):
         flavor = flavors.extract_flavor(instance)
         return int(flavor['vcpus']) * 1024
 
-    def _create_container(self, instance, args):
+    def _create_container(self, instance, image_name, args):
         name = "nova-" + instance['uuid']
-        return self.docker.create_container(args, name)
+        args.update({'name': name})
+        return self.docker.create_container(image_name, **args)
 
     def get_host_uptime(self, host):
         return hostutils.sys_uptime()
