@@ -25,6 +25,7 @@ import uuid
 from oslo.config import cfg
 from oslo.serialization import jsonutils
 from oslo.utils import importutils
+from oslo.utils import strutils
 from oslo.utils import units
 
 from nova.compute import flavors
@@ -297,6 +298,11 @@ class DockerDriver(driver.ComputeDriver):
         if (image_meta and
                 image_meta.get('properties', {}).get('os_command_line')):
             args['Cmd'] = image_meta['properties'].get('os_command_line')
+        if (image_meta and
+                image_meta.get('properties', {}).get('docker_privileged')):
+            is_privileged = image_meta['properties'].get('docker_privileged')
+            args['Privileged'] = strutils.bool_from_string(is_privileged,
+                                                           strict=True)
 
         container_id = self._create_container(instance, args)
         if not container_id:
