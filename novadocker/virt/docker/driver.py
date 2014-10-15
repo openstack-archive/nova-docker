@@ -22,10 +22,12 @@ import socket
 import time
 import uuid
 
+from eventlet.green import httplib
 from oslo.config import cfg
 from oslo.serialization import jsonutils
 from oslo.utils import importutils
 from oslo.utils import units
+import six.moves.urllib.parse as urlparse
 
 from nova.compute import flavors
 from nova.compute import power_state
@@ -48,6 +50,10 @@ CONF.import_opt('my_ip', 'nova.netconf')
 CONF.import_opt('instances_path', 'nova.compute.manager')
 
 docker_opts = [
+    cfg.StrOpt('host',
+               default='unix:///var/run/docker.sock',
+               help='tcp://host:port to bind/connect to or '
+                    'unix://path/to/socket to use'),
     cfg.StrOpt('vif_driver',
                default='novadocker.virt.docker.vifs.DockerGenericVIFDriver'),
     cfg.StrOpt('snapshots_directory',
@@ -72,8 +78,22 @@ class DockerDriver(driver.ComputeDriver):
 
     @property
     def docker(self):
-        if self._docker is None:
-            self._docker = docker_client.DockerHTTPClient()
+        if self._docker:
+            return self._docker
+
+        _urlparse = urlparse.urlparse(CONF.docker.host)
+        scheme, netloc, path, params, query, fragment = _urlparse
+        print _urlparse
+        if scheme == 'http' or scheme == 'tcp':
+            conn = httplib.HTTPConnection(netloc)
+        elif scheme == 'unix':
+            conn = docker_client.UnixHTTPConnection(path)
+        else:
+            raise exception.NovaException(
+                _('Docker host url [%s] is not supported.') %
+                CONF.docker.host)
+
+        self._docker = docker_client.DockerHTTPClient(conn)
         return self._docker
 
     def init_host(self, host):
