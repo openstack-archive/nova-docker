@@ -13,6 +13,7 @@ export INSTALLDIR=$BASE/new
 bash -xe $SCRIPTDIR/prepare_devstack.sh
 
 export DEVSTACK_GATE_VIRT_DRIVER=docker
+export NON_STANDARD_REQS=1
 export KEEP_LOCALRC=1
 
 export ENABLED_SERVICES+=-tr-api,-tr-cond,-tr-mgr,-trove,-ceilometer-acentral,-ceilometer-acompute,-ceilometer-alarm-evaluator,-ceilometer-alarm-notifier,-ceilometer-anotification,-ceilometer-api,-ceilometer-collector,-s-account,-s-container,-s-object,-s-proxy,-sahara
