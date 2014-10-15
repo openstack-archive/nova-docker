@@ -91,9 +91,16 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         return instance_ref, network_info
 
     def test_get_host_stats(self):
+        memory = {
+            'total': 4 * units.Mi,
+            'used': 1 * units.Mi
+        }
         self.mox.StubOutWithMock(socket, 'gethostname')
+        self.mox.StubOutWithMock(hostinfo, 'get_memory_usage')
         socket.gethostname().AndReturn('foo')
+        hostinfo.get_memory_usage().AndReturn(memory)
         socket.gethostname().AndReturn('bar')
+        hostinfo.get_memory_usage().AndReturn(memory)
         self.mox.ReplayAll()
         self.assertEqual('foo',
                          self.connection.get_host_stats()['host_hostname'])
