@@ -12,6 +12,7 @@ cp $NOVADOCKERDIR/contrib/devstack/lib/nova_plugins/hypervisor-docker $INSTALLDI
 cat - <<-EOF >> $INSTALLDIR/devstack/localrc
 export VIRT_DRIVER=docker
 export DEFAULT_IMAGE_NAME=cirros
+export NON_STANDARD_REQS=1
 export IMAGE_URLS=" "
 EOF
 
