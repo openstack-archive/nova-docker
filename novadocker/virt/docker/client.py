@@ -23,6 +23,7 @@ import six
 
 from nova.openstack.common import log as logging
 
+_DOCKER_DEFAULT_SOCKET = '/var/run/docker.sock'
 
 LOG = logging.getLogger(__name__)
 
@@ -84,9 +85,9 @@ class Response(object):
 
 
 class UnixHTTPConnection(httplib.HTTPConnection):
-    def __init__(self):
+    def __init__(self, path):
         httplib.HTTPConnection.__init__(self, 'localhost')
-        self.unix_socket = '/var/run/docker.sock'
+        self.unix_socket = path
 
     def connect(self):
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -97,15 +98,12 @@ class UnixHTTPConnection(httplib.HTTPConnection):
 class DockerHTTPClient(object):
     VERSION = 'v1.13'
 
-    def __init__(self, connection=None):
+    def __init__(self, connection=UnixHTTPConnection(_DOCKER_DEFAULT_SOCKET)):
         self._connection = connection
 
     @property
     def connection(self):
-        if self._connection:
-            return self._connection
-        else:
-            return UnixHTTPConnection()
+        return self._connection
 
     def make_request(self, *args, **kwargs):
         headers = {}
