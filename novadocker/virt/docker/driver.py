@@ -55,6 +55,12 @@ docker_opts = [
                default='unix:///var/run/docker.sock',
                help='tcp://host:port to bind/connect to or '
                     'unix://path/to/socket to use'),
+    cfg.BoolOpt('api_insecure',
+                default=False,
+                help='If set, ignore any SSL validation issues'),
+    cfg.StrOpt('ca_certificates_file',
+               help='Location of CA certificates file to use for '
+                    'docker api requests.'),
     cfg.StrOpt('vif_driver',
                default='novadocker.virt.docker.vifs.DockerGenericVIFDriver'),
     cfg.StrOpt('snapshots_directory',
