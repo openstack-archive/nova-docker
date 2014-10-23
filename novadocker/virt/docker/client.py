@@ -17,9 +17,13 @@
 import functools
 import inspect
 
+from oslo.config import cfg
 import six
 
 from docker import client
+from docker import tls
+
+CONF = cfg.CONF
 
 
 def filter_data(f):
@@ -48,10 +52,17 @@ def filter_data(f):
 
 class DockerHTTPClient(client.Client):
     def __init__(self, url='unix://var/run/docker.sock'):
+        if CONF.docker.ca_certificates_file:
+            ssl_config = tls.TLSConfig(
+                ca_cert=CONF.docker.ca_certificates_file,
+                verify=CONF.docker.api_insecure)
+        else:
+            ssl_config = False
         super(DockerHTTPClient, self).__init__(
             base_url=url,
             version='1.13',
-            timeout=10
+            timeout=10,
+            tls=ssl_config
         )
         self._setup_decorators()
 
