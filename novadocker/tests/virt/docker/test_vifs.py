@@ -22,6 +22,28 @@ import novadocker.virt.docker
 
 class DockerGenericVIFDriverTestCase(test.TestCase):
 
+    gateway_bridge_4 = network_model.IP(address='10.11.12.1', type='gateway')
+    dns_bridge_4 = network_model.IP(address='8.8.8.8', type=None)
+    ips_bridge_4 = [network_model.IP(address='101.168.1.9', type='fixed',
+                                     version=4)]
+
+    subnet_bridge_4 = network_model.Subnet(cidr='10.11.1.0/24',
+                                           dns=[dns_bridge_4],
+                                           gateway=gateway_bridge_4,
+                                           ips=ips_bridge_4,
+                                           routes=None)
+
+    network_bridge = network_model.Network(id='network-id-xxx-yyy-zzz',
+                                           bridge='br100',
+                                           label=None,
+                                           subnets=[subnet_bridge_4],
+                                           bridge_interface='eth0')
+
+    vif_bridge = network_model.VIF(id='920be2f4-2b98-411e-890a-69bcabb2a5a0',
+                                   address='00:11:22:33:44:55',
+                                   network=network_bridge,
+                                   type=network_model.VIF_TYPE_BRIDGE)
+
     def setUp(self):
         super(DockerGenericVIFDriverTestCase, self).setUp()
 
@@ -44,18 +66,7 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
             mock.call('ip', 'link', 'set', 'tap920be2f4-2b', 'up',
                       run_as_root=True)
         ]
-        network_info = [
-            {'network': {'bridge': 'br100',
-                         'subnets': [{'gateway': {'address': '10.11.12.1'},
-                                      'cidr': '10.11.12.0/24',
-                                      'ips': [{'address': '10.11.12.3',
-                                               'type': 'fixed', 'version': 4}]
-                                      }],
-                         'meta': {'bridge_interface': 'eth0'}
-                         },
-             'address': '00:11:22:33:44:55',
-             'id': '920be2f4-2b98-411e-890a-69bcabb2a5a0',
-             'type': network_model.VIF_TYPE_BRIDGE}]
+        network_info = [self.vif_bridge]
         with mock.patch('nova.utils.execute') as ex:
             driver = novadocker.virt.docker.driver.DockerDriver(object)
             driver.plug_vifs({'name': 'fake_instance'}, network_info)
@@ -84,29 +95,7 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
             mock.call('ip', 'link', 'set', 'tap920be2f4-2b', 'up',
                       run_as_root=True),
         ]
-        network_info = [
-            {'network': {'bridge': 'br100',
-                         'subnets': [{'gateway': {'address': '10.11.12.1'},
-                                      'cidr': '10.11.12.0/24',
-                                      'ips': [{'address': '10.11.12.3',
-                                               'type': 'fixed', 'version': 4}],
-                                      }],
-                         'meta': {'bridge_interface': 'eth0'}
-                         },
-             'address': '00:11:22:33:44:55',
-             'type': network_model.VIF_TYPE_BRIDGE,
-             'id': '920be2f4-2b98-411e-890a-69bcabb2a5a0'},
-            {'network': {'bridge': 'br100',
-                         'subnets': [{'gateway': {'address': '10.13.12.1'},
-                                      'cidr': '10.13.12.0/24',
-                                      'ips': [{'address': '10.13.12.3',
-                                               'type': 'fixed', 'version': 4}]
-                                      }],
-                         'meta': {'bridge_interface': 'eth0'}
-                         },
-             'address': '00:11:22:33:44:66',
-             'type': network_model.VIF_TYPE_BRIDGE,
-             'id': '920be2f4-2b98-411e-890a-69bcabb2a5a0'}]
+        network_info = [self.vif_bridge, self.vif_bridge]
         with mock.patch('nova.utils.execute') as ex:
             driver = novadocker.virt.docker.driver.DockerDriver(object)
             driver.plug_vifs({'name': 'fake_instance'}, network_info)
