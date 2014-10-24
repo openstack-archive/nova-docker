@@ -39,6 +39,7 @@ from nova.openstack.common import fileutils
 from nova.openstack.common import log
 from nova import utils
 from nova.virt import driver
+from nova.virt import firewall
 from nova.virt import images
 from novadocker.virt.docker import client as docker_client
 from novadocker.virt.docker import hostinfo
@@ -71,6 +72,8 @@ class DockerDriver(driver.ComputeDriver):
         self._docker = None
         vif_class = importutils.import_class(CONF.docker.vif_driver)
         self.vif_driver = vif_class()
+        self.firewall_driver = firewall.load_driver(
+            default='nova.virt.firewall.NoopFirewallDriver')
 
     @property
     def docker(self):
@@ -86,6 +89,69 @@ class DockerDriver(driver.ComputeDriver):
 
     def _is_daemon_running(self):
         return self.docker.ping()
+
+    def _start_firewall(self, instance, network_info):
+        self.firewall_driver.setup_basic_filtering(instance, network_info)
+        self.firewall_driver.prepare_instance_filter(instance, network_info)
+        self.firewall_driver.apply_instance_filter(instance, network_info)
+
+    def _stop_firewall(self, instance, network_info):
+        self.firewall_driver.unfilter_instance(instance, network_info)
+
+    def refresh_security_group_rules(self, security_group_id):
+        """Refresh security group rules from data store.
+
+        Invoked when security group rules are updated.
+
+        :param security_group_id: The security group id.
+
+        """
+        self.firewall_driver.refresh_security_group_rules(security_group_id)
+
+    def refresh_security_group_members(self, security_group_id):
+        """Refresh security group members from data store.
+
+        Invoked when instances are added/removed to a security group.
+
+        :param security_group_id: The security group id.
+
+        """
+        self.firewall_driver.refresh_security_group_members(security_group_id)
+
+    def refresh_provider_fw_rules(self):
+        """Triggers a firewall update based on database changes."""
+        self.firewall_driver.refresh_provider_fw_rules()
+
+    def refresh_instance_security_rules(self, instance):
+        """Refresh security group rules from data store.
+
+        Gets called when an instance gets added to or removed from
+        the security group the instance is a member of or if the
+        group gains or loses a rule.
+
+        :param instance: The instance object.
+
+        """
+        self.firewall_driver.refresh_instance_security_rules(instance)
+
+    def ensure_filtering_rules_for_instance(self, instance, network_info):
+        """Set up filtering rules.
+
+        :param instance: The instance object.
+        :param network_info: Instance network information.
+
+        """
+        self.firewall_driver.setup_basic_filtering(instance, network_info)
+        self.firewall_driver.prepare_instance_filter(instance, network_info)
+
+    def unfilter_instance(self, instance, network_info):
+        """Stop filtering instance.
+
+        :param instance: The instance object.
+        :param network_info: Instance network information.
+
+        """
+        self.firewall_driver.unfilter_instance(instance, network_info)
 
     def list_instances(self, inspect=False):
         res = []
@@ -103,6 +169,7 @@ class DockerDriver(driver.ComputeDriver):
         """Plug VIFs into networks."""
         for vif in network_info:
             self.vif_driver.plug(instance, vif)
+        self._start_firewall(instance, network_info)
 
     def _attach_vifs(self, instance, network_info):
         """Plug VIFs into container."""
@@ -132,6 +199,7 @@ class DockerDriver(driver.ComputeDriver):
         """Unplug VIFs from networks."""
         for vif in network_info:
             self.vif_driver.unplug(instance, vif)
+        self._stop_firewall(instance, network_info)
 
     def _encode_utf8(self, value):
         return unicode(value).encode('utf-8')
