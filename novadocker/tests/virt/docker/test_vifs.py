@@ -17,7 +17,8 @@ import mock
 
 from nova.network import model as network_model
 from nova import test
-import novadocker.virt.docker
+from novadocker.virt.docker import driver as docker_driver
+from novadocker.virt.docker import vifs
 
 
 class DockerGenericVIFDriverTestCase(test.TestCase):
@@ -50,7 +51,7 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
         def fake_fe_random_mac(self):
             return 'fe:16:3e:ff:ff:ff'
 
-        self.stubs.Set(novadocker.virt.docker.vifs.DockerGenericVIFDriver,
+        self.stubs.Set(vifs.DockerGenericVIFDriver,
                        '_fe_random_mac',
                        fake_fe_random_mac)
 
@@ -68,7 +69,7 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
         ]
         network_info = [self.vif_bridge]
         with mock.patch('nova.utils.execute') as ex:
-            driver = novadocker.virt.docker.driver.DockerDriver(object)
+            driver = docker_driver.DockerDriver(object)
             driver.plug_vifs({'name': 'fake_instance'}, network_info)
             ex.assert_has_calls(calls)
 
@@ -97,7 +98,7 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
         ]
         network_info = [self.vif_bridge, self.vif_bridge]
         with mock.patch('nova.utils.execute') as ex:
-            driver = novadocker.virt.docker.driver.DockerDriver(object)
+            driver = docker_driver.DockerDriver(object)
             driver.plug_vifs({'name': 'fake_instance'}, network_info)
             ex.assert_has_calls(calls)
 
@@ -131,7 +132,7 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
              'id': iface_id,
              'type': network_model.VIF_TYPE_OVS}]
         with mock.patch('nova.utils.execute') as ex:
-            driver = novadocker.virt.docker.driver.DockerDriver(object)
+            driver = docker_driver.DockerDriver(object)
             driver.plug_vifs({'name': 'fake_instance',
                               'uuid': 'instance_uuid'}, network_info)
             ex.assert_has_calls(calls)
@@ -155,15 +156,15 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
              'id': iface_id,
              'type': network_model.VIF_TYPE_OVS}]
         with mock.patch('nova.utils.execute') as ex:
-            driver = novadocker.virt.docker.driver.DockerDriver(object)
+            driver = docker_driver.DockerDriver(object)
             driver.unplug_vifs({'name': 'fake_instance',
                                 'uuid': 'instance_uuid'}, network_info)
             ex.assert_has_calls(calls)
 
-    @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
+    @mock.patch.object(docker_driver.DockerDriver,
                        '_find_container_by_name',
                        return_value={'id': 'fake_id'})
-    @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
+    @mock.patch.object(docker_driver.DockerDriver,
                        '_find_container_pid',
                        return_value=1234)
     def test_attach_vifs(self, mock_find_by_name, mock_find_pid):
@@ -193,14 +194,14 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
              'id': '920be2f4-2b98-411e-890a-69bcabb2a5a0',
              'type': network_model.VIF_TYPE_BRIDGE}]
         with mock.patch('nova.utils.execute') as ex:
-            driver = novadocker.virt.docker.driver.DockerDriver(object)
+            driver = docker_driver.DockerDriver(object)
             driver._attach_vifs({'name': 'fake_instance'}, network_info)
             ex.assert_has_calls(calls)
 
-    @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
+    @mock.patch.object(docker_driver.DockerDriver,
                        '_find_container_by_name',
                        return_value={'id': 'fake_id'})
-    @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
+    @mock.patch.object(docker_driver.DockerDriver,
                        '_find_container_pid',
                        return_value=1234)
     def test_attach_vifs_two_interfaces(self, mock_find_by_name,
@@ -253,6 +254,6 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
              'type': network_model.VIF_TYPE_BRIDGE,
              'id': '920be2f4-2b98-411e-890a-69bcabb2a5a0'}]
         with mock.patch('nova.utils.execute') as ex:
-            driver = novadocker.virt.docker.driver.DockerDriver(object)
+            driver = docker_driver.DockerDriver(object)
             driver._attach_vifs({'name': 'fake_instance'}, network_info)
             ex.assert_has_calls(calls)
