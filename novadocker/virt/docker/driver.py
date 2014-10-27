@@ -360,20 +360,19 @@ class DockerDriver(driver.ComputeDriver):
         return self.docker.inspect_image(self._encode_utf8(image_meta['name']))
 
     def _start_container(self, container_id, instance, network_info=None):
+        if network_info:
+            try:
+                self.plug_vifs(instance, network_info)
+                self._attach_vifs(instance, network_info)
+            except Exception as e:
+                LOG.warning(_('Cannot setup network: %s'),
+                            e, instance=instance, exc_info=True)
+                msg = _('Cannot setup network: {0}')
+                self.docker.kill(container_id)
+                self.docker.remove_container(container_id, force=True)
+                raise exception.InstanceDeployFailure(msg.format(e),
+                                                      instance_id=instance['name'])
         self.docker.start(container_id)
-        if not network_info:
-            return
-        try:
-            self.plug_vifs(instance, network_info)
-            self._attach_vifs(instance, network_info)
-        except Exception as e:
-            LOG.warning(_('Cannot setup network: %s'),
-                        e, instance=instance, exc_info=True)
-            msg = _('Cannot setup network: {0}')
-            self.docker.kill(container_id)
-            self.docker.remove_container(container_id, force=True)
-            raise exception.InstanceDeployFailure(msg.format(e),
-                                                  instance_id=instance['name'])
 
     def spawn(self, context, instance, image_meta, injected_files,
               admin_password, network_info=None, block_device_info=None):
