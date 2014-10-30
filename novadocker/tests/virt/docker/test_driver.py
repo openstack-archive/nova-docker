@@ -165,6 +165,41 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         self.assertEqual(self.mock_client.name, "nova-{0}".format(
             instance_href['uuid']))
 
+    def test_create_container_empty_cmd(self, image_info=None,
+                                        instance_href=None,
+                                        network_info=None):
+        if instance_href is None:
+            instance_href = utils.get_test_instance()
+        instance_href = utils.get_test_instance()
+        if image_info is None:
+            image_info = utils.get_test_image_info(None, instance_href)
+            image_info['disk_format'] = 'raw'
+            image_info['container_format'] = 'docker'
+        with mock.patch.object(self.mock_client, 'create_container') as mc:
+            self.connection.spawn(self.context, instance_href, image_info,
+                                  'fake_files', 'fake_password',
+                                  network_info=network_info)
+            command = mc.call_args[1]['command']
+            self.assertEqual(['sh'], command)
+
+    def test_create_container_glance_cmd(self, image_info=None,
+                                         instance_href=None,
+                                         network_info=None):
+        if instance_href is None:
+            instance_href = utils.get_test_instance()
+        instance_href = utils.get_test_instance()
+        if image_info is None:
+            image_info = utils.get_test_image_info(None, instance_href)
+            image_info['disk_format'] = 'raw'
+            image_info['container_format'] = 'docker'
+            image_info['properties'] = {'os_command_line': 'uname'}
+        with mock.patch.object(self.mock_client, 'create_container') as mc:
+            self.connection.spawn(self.context, instance_href, image_info,
+                                  'fake_files', 'fake_password',
+                                  network_info=network_info)
+            command = mc.call_args[1]['command']
+            self.assertEqual('uname', command)
+
     def test_create_container_vcpus_2(self, image_info=None):
         flavor = utils.get_test_flavor(options={
             'name': 'vcpu_2',
