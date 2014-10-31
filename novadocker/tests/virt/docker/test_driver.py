@@ -17,6 +17,7 @@ import contextlib
 import socket
 
 import mock
+from oslo.config import fixture as config_fixture
 from oslo.serialization import jsonutils
 from oslo.utils import units
 
@@ -68,6 +69,8 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         self.context = context.RequestContext('fake_user', 'fake_project')
 
         self.connection.init_host(None)
+        self.fixture = self.useFixture(
+            config_fixture.Config(novadocker.virt.docker.driver.CONF))
 
     def test_driver_capabilities(self):
         self.assertFalse(self.connection.capabilities['has_imagecache'])
@@ -153,7 +156,6 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
                               network_info=None):
         if instance_href is None:
             instance_href = utils.get_test_instance()
-        instance_href = utils.get_test_instance()
         if image_info is None:
             image_info = utils.get_test_image_info(None, instance_href)
             image_info['disk_format'] = 'raw'
@@ -170,7 +172,6 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
                                         network_info=None):
         if instance_href is None:
             instance_href = utils.get_test_instance()
-        instance_href = utils.get_test_instance()
         if image_info is None:
             image_info = utils.get_test_image_info(None, instance_href)
             image_info['disk_format'] = 'raw'
@@ -182,12 +183,30 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
             command = mc.call_args[1]['command']
             self.assertEqual(['sh'], command)
 
+    @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
+                       '_inject_key', return_value='/tmp/.ssh')
+    def test_create_container_inject_key(self, mock_inject_key):
+        self.fixture.config(inject_key=True, group='docker')
+        instance_href = utils.get_test_instance()
+        instance_href.key_data = 'my_key'
+        image_info = utils.get_test_image_info(None, instance_href)
+        image_info['disk_format'] = 'raw'
+        image_info['container_format'] = 'docker'
+        with mock.patch.object(self.mock_client, 'create_container'):
+            with mock.patch.object(self.mock_client, 'start') as ms:
+                self.connection.spawn(self.context, instance_href, image_info,
+                                      'fake_files', 'fake_password',
+                                      network_info=None)
+                command = ms.call_args[1]
+                expected = {'binds': {'/tmp/.ssh':
+                            {'bind': '/root/.ssh', 'ro': True}}}
+                self.assertEqual(expected, command)
+
     def test_create_container_glance_cmd(self, image_info=None,
                                          instance_href=None,
                                          network_info=None):
         if instance_href is None:
             instance_href = utils.get_test_instance()
-        instance_href = utils.get_test_instance()
         if image_info is None:
             image_info = utils.get_test_image_info(None, instance_href)
             image_info['disk_format'] = 'raw'
