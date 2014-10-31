@@ -13,10 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo.concurrency import processutils
+
 from nova import exception
 from nova.i18n import _
 from nova.openstack.common import log
-from nova.openstack.common import processutils
 from nova import utils
 
 LOG = log.getLogger(__name__)
