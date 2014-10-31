@@ -15,13 +15,14 @@
 
 import uuid
 
+from oslo.concurrency import processutils
+
 from nova import exception
 from nova import test
 from nova import utils
 
 from nova.tests import utils as test_utils
 
-from nova.openstack.common import processutils
 from novadocker.virt.docker import network
 
 import mock
