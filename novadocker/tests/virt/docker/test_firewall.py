@@ -23,6 +23,7 @@ from novadocker.virt.docker import driver
 
 class DockerFirewallDriverTestCase(test.TestCase):
 
+    REQUIRES_LOCKING = True
     gateway_bridge_4 = network_model.IP(address='10.11.12.1', type='gateway')
     dns_bridge_4 = network_model.IP(address='8.8.8.8', type=None)
     ips_bridge_4 = [network_model.IP(address='101.168.1.9', type='fixed',
