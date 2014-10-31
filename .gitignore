@@ -26,6 +26,7 @@ pip-log.txt
 .tox
 nosetests.xml
 .testrepository
+subunit.log
 
 # Translations
 *.mo
