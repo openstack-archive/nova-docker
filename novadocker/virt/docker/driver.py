@@ -386,7 +386,7 @@ class DockerDriver(driver.ComputeDriver):
         }
         try:
             image = self.docker.inspect_image(self._encode_utf8(image_name))
-        except:
+        except errors.APIError:
             image = None
         if not image:
             image = self._pull_missing_image(context, image_meta, instance)
