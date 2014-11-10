@@ -17,7 +17,7 @@ export KEEP_LOCALRC=1
 
 export ENABLED_SERVICES+=-tr-api,-tr-cond,-tr-mgr,-trove,-ceilometer-acentral,-ceilometer-acompute,-ceilometer-alarm-evaluator,-ceilometer-alarm-notifier,-ceilometer-anotification,-ceilometer-api,-ceilometer-collector,-s-account,-s-container,-s-object,-s-proxy,-sahara
 
-export DEVSTACK_GATE_TEMPEST_REGEX='^(?!.*?(volume|resize|suspend|swift|rescue|cinder|migrate)).*'
+export DEVSTACK_GATE_TEMPEST_REGEX='^(?!.*?(test_resize_server_confirm|test_encrypted_cinder_volumes|test_rescue_unrescue|test_volume_boot_pattern|test_server_sequence_suspend_resume|test_minimum_basic_scenario)).*'
 
 export DEVSTACK_GATE_TEMPEST=1
 export DEVSTACK_GATE_TEMPEST_FULL=0
