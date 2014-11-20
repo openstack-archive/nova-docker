@@ -40,6 +40,7 @@ from nova.openstack.common import log
 from nova import utils
 from nova.virt import driver
 from nova.virt import firewall
+from nova.virt import hardware
 from nova.virt import images
 from novadocker.virt.docker import client as docker_client
 from novadocker.virt.docker import hostinfo
@@ -251,14 +252,14 @@ class DockerDriver(driver.ComputeDriver):
         #
         #                   Also see:
         #                    docker/docs/sources/articles/runmetrics.md
-        info = {
-            'max_mem': mem,
-            'mem': mem,
-            'num_cpu': num_cpu,
-            'cpu_time': 0
-        }
-        info['state'] = (power_state.RUNNING if running
-                         else power_state.SHUTDOWN)
+        info = hardware.InstanceInfo(
+            max_mem_kb=mem,
+            mem_kb=mem,
+            num_cpu=num_cpu,
+            cpu_time_ns=0,
+            state=(power_state.RUNNING if running
+                   else power_state.SHUTDOWN)
+        )
         return info
 
     def get_host_stats(self, refresh=False):
@@ -376,7 +377,8 @@ class DockerDriver(driver.ComputeDriver):
                                                   instance_id=instance['name'])
 
     def spawn(self, context, instance, image_meta, injected_files,
-              admin_password, network_info=None, block_device_info=None):
+              admin_password, network_info=None, block_device_info=None,
+              instance_type=None):
         image_name = self._get_image_name(context, instance, image_meta)
         args = {
             'hostname': instance['name'],
