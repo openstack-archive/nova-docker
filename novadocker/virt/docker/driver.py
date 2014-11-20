@@ -396,6 +396,12 @@ class DockerDriver(driver.ComputeDriver):
                 image_meta.get('properties', {}).get('os_command_line')):
             args['command'] = image_meta['properties'].get('os_command_line')
 
+        if instance.get('user_data'):
+            lines = instance.user_data.strip().splitlines()
+            args['environment'] = dict(
+                (key.strip(), value.strip()) for key, value in (
+                    line.split('=') for line in lines))
+
         container_id = self._create_container(instance, image_name, args)
         if not container_id:
             raise exception.InstanceDeployFailure(

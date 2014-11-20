@@ -182,6 +182,27 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
             command = mc.call_args[1]['command']
             self.assertEqual(['sh'], command)
 
+    def test_create_container_with_environment(self, image_info=None,
+                                               instance_href=None,
+                                               network_info=None):
+        instance_href = utils.get_test_instance()
+        instance_href.user_data = '''
+ x = 1
+    y =    2
+ z = 3
+    '''
+        if image_info is None:
+            image_info = utils.get_test_image_info(None, instance_href)
+            image_info['disk_format'] = 'raw'
+            image_info['container_format'] = 'docker'
+        with mock.patch.object(self.mock_client, 'create_container') as mc:
+            self.connection.spawn(self.context, instance_href, image_info,
+                                  'fake_files', 'fake_password',
+                                  network_info=network_info)
+            environment = mc.call_args[1]['environment']
+            self.assertEqual({'x': '1', 'y': '2', 'z': '3'},
+                             environment)
+
     def test_create_container_glance_cmd(self, image_info=None,
                                          instance_href=None,
                                          network_info=None):
