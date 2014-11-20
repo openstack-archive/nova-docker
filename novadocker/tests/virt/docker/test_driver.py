@@ -24,10 +24,10 @@ from nova.compute import task_states
 from nova import context
 from nova import exception
 from nova import test
-import nova.tests.image.fake
-from nova.tests import matchers
-from nova.tests import utils
-from nova.tests.virt.test_virt_drivers import _VirtDriverTestCase
+import nova.tests.unit.image.fake
+from nova.tests.unit import matchers
+from nova.tests.unit import utils
+from nova.tests.unit.virt.test_virt_drivers import _VirtDriverTestCase
 from novadocker.tests.virt.docker import mock_client
 import novadocker.virt.docker
 from novadocker.virt.docker import hostinfo
@@ -357,7 +357,7 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         # cannot check that the images are correctly configured in the
         # fake image service, but we can ensuring naming and other
         # conventions are accurate.
-        image_service = nova.tests.image.fake.FakeImageService()
+        image_service = nova.tests.unit.image.fake.FakeImageService()
         recv_meta = image_service.create(context, sent_meta)
 
         with mock.patch.object(self.mock_client, 'load_image'):
