@@ -18,6 +18,7 @@
 A Docker Hypervisor which allows running Linux Containers instead of VMs.
 """
 
+import base64
 import os
 import shutil
 import socket
@@ -78,6 +79,10 @@ docker_opts = [
     cfg.BoolOpt('inject_key',
                 default=False,
                 help='Inject the ssh public key at boot time'),
+    cfg.BoolOpt('inject_user_data_as_env_vars',
+                default=False,
+                help='Extract key/value pairs from user data and inject '
+                     'them as environment variables'),
 ]
 
 CONF.register_opts(docker_opts, 'docker')
@@ -424,13 +429,18 @@ class DockerDriver(driver.ComputeDriver):
                 image_meta.get('properties', {}).get('os_command_line')):
             args['command'] = image_meta['properties'].get('os_command_line')
 
-
         args['dns'] = self._extract_dns_entries(network_info)
 
         if (image_meta and
                 image_meta.get('properties', {}).get('working_directory')):
             args['WorkingDir'] = image_meta['properties'].get(
                 'working_directory')
+
+        if instance.get('user_data'):
+            lines = base64.b64decode(instance.user_data).strip().splitlines()
+            args['environment'] = dict(
+                (key.strip(), value.strip()) for key, value in (
+                    line.split('=') for line in lines))
 
         container_id = self._create_container(instance, image_name, args)
         if not container_id:
