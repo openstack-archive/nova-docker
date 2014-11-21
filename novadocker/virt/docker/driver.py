@@ -42,6 +42,7 @@ from nova.virt import driver
 from nova.virt import firewall
 from nova.virt import hardware
 from nova.virt import images
+from nova import utils as nova_utils
 from novadocker.virt.docker import client as docker_client
 from novadocker.virt.docker import hostinfo
 from novadocker.virt.docker import network
@@ -396,6 +397,8 @@ class DockerDriver(driver.ComputeDriver):
         if (image_meta and
                 image_meta.get('properties', {}).get('os_command_line')):
             args['command'] = image_meta['properties'].get('os_command_line')
+
+        args['environment'] = nova_utils.instance_meta(instance)
 
         container_id = self._create_container(instance, image_name, args)
         if not container_id:
