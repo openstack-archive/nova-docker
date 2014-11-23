@@ -424,7 +424,13 @@ class DockerDriver(driver.ComputeDriver):
                 image_meta.get('properties', {}).get('os_command_line')):
             args['command'] = image_meta['properties'].get('os_command_line')
 
+
         args['dns'] = self._extract_dns_entries(network_info)
+
+        if (image_meta and
+                image_meta.get('properties', {}).get('working_directory')):
+            args['WorkingDir'] = image_meta['properties'].get(
+                'working_directory')
 
         container_id = self._create_container(instance, image_name, args)
         if not container_id:
