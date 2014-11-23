@@ -230,6 +230,19 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
             command = mc.call_args[1]['command']
             self.assertEqual('uname', command)
 
+    def test_create_container_glance_working_directory(self):
+        instance_href = utils.get_test_instance()
+        image_info = utils.get_test_image_info(None, instance_href)
+        image_info['disk_format'] = 'raw'
+        image_info['container_format'] = 'docker'
+        image_info['properties'] = {'working_directory': '/test'}
+        with mock.patch.object(self.mock_client, 'create_container') as mc:
+            self.connection.spawn(self.context, instance_href, image_info,
+                                  'fake_files', 'fake_password',
+                                  network_info=None)
+            directory = mc.call_args[1]['WorkingDir']
+            self.assertEqual('/test', directory)
+
     def test_create_container_vcpus_2(self, image_info=None):
         flavor = utils.get_test_flavor(options={
             'name': 'vcpu_2',
