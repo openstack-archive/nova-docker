@@ -360,8 +360,23 @@ class DockerDriver(driver.ComputeDriver):
 
         return self.docker.inspect_image(self._encode_utf8(image_meta['name']))
 
+    def _extract_dns_entries(self, network_info):
+        dns = []
+        if network_info:
+            for network in network_info:
+                subnets = network['network'].get('subnets', [])
+                if subnets:
+                    for subnet in subnets:
+                        dns_entries = subnet.get('dns', [])
+                        if dns_entries:
+                            for dns_entry in dns_entries:
+                                if 'address' in dns_entry:
+                                    dns.append(dns_entry['address'])
+        return dns
+
     def _start_container(self, container_id, instance, network_info=None):
-        self.docker.start(container_id)
+        self.docker.start(container_id,
+                          dns=self._extract_dns_entries(network_info))
         if not network_info:
             return
         try:
