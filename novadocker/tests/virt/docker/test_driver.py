@@ -31,6 +31,7 @@ from nova.tests.unit import utils
 from nova.tests.unit.virt.test_virt_drivers import _VirtDriverTestCase
 from novadocker.tests.virt.docker import mock_client
 import novadocker.virt.docker
+from novadocker.virt.docker import driver as docker_driver
 from novadocker.virt.docker import hostinfo
 from novadocker.virt.docker import network
 
@@ -207,7 +208,8 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
                                       network_info=None)
                 command = ms.call_args[1]
                 expected = {'binds': {'/tmp/.ssh':
-                            {'bind': '/root/.ssh', 'ro': True}}}
+                            {'bind': '/root/.ssh', 'ro': True}},
+                            'dns': None}
                 self.assertEqual(expected, command)
 
     def test_create_container_glance_cmd(self, image_info=None,
@@ -255,7 +257,7 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
     def test_create_container_net_setup_fails(self, mock_plug_vifs):
         self.assertRaises(exception.InstanceDeployFailure,
                           self.test_create_container,
-                          network_info=mock.ANY)
+                          network_info=utils.get_test_network_info())
         self.assertEqual(0, len(self.mock_client.containers()))
 
     def test_create_container_wrong_image(self):
@@ -418,3 +420,9 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
                         return_value=(result, None)):
             uptime = self.connection.get_host_uptime(None)
             self.assertEqual(result, uptime)
+
+    def test_get_dns_entries(self):
+        driver = docker_driver.DockerDriver(object)
+        network_info = utils.get_test_network_info()
+        self.assertEqual(['0.0.0.0', '0.0.0.0'],
+                         driver._extract_dns_entries(network_info))

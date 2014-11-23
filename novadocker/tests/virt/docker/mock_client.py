@@ -112,7 +112,7 @@ class MockClient(object):
         }
         return container_id
 
-    def start(self, container_id, binds=None):
+    def start(self, container_id, binds=None, dns=None):
         if container_id not in self._containers:
             return False
         self._containers[container_id]['running'] = True
