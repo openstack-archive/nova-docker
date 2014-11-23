@@ -34,6 +34,27 @@ def get_disk_usage():
     }
 
 
+def get_total_vcpus():
+    total_vcpus = 0
+
+    with open('/proc/cpuinfo') as f:
+        for ln in f.readlines():
+            if ln.startswith('processor'):
+                total_vcpus += 1
+
+    return total_vcpus
+
+
+def get_vcpus_used(containers):
+    total_vcpus_used = 0
+    for container in containers:
+        if isinstance(container, dict):
+            total_vcpus_used += container.get('Config', {}).get(
+                'CpuShares', 0) / 1024
+
+    return total_vcpus_used
+
+
 def get_memory_usage():
     with open('/proc/meminfo') as f:
         m = f.read().split()

@@ -90,7 +90,9 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
                               network_info=network_info)
         return instance_ref, network_info
 
-    def test_get_host_stats(self):
+    @mock.patch.object(hostinfo, 'get_total_vcpus', return_value=1)
+    @mock.patch.object(hostinfo, 'get_vcpus_used', return_value=0)
+    def test_get_host_stats(self, mock_total, mock_used):
         memory = {
             'total': 4 * units.Mi,
             'used': 1 * units.Mi
@@ -119,11 +121,17 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
         }
         # create the mocks
         with contextlib.nested(
+            mock.patch.object(hostinfo, 'get_total_vcpus',
+                              return_value=1),
+            mock.patch.object(hostinfo, 'get_vcpus_used',
+                              return_value=0),
             mock.patch.object(hostinfo, 'get_memory_usage',
                               return_value=memory),
             mock.patch.object(hostinfo, 'get_disk_usage',
                               return_value=disk)
         ) as (
+            get_total_vcpus,
+            get_vcpus_used,
             get_memory_usage,
             get_disk_usage
         ):

@@ -285,8 +285,8 @@ class DockerDriver(driver.ComputeDriver):
         memory = hostinfo.get_memory_usage()
         disk = hostinfo.get_disk_usage()
         stats = {
-            'vcpus': 1,
-            'vcpus_used': 0,
+            'vcpus': hostinfo.get_total_vcpus(),
+            'vcpus_used': hostinfo.get_vcpus_used(self.list_instances(True)),
             'memory_mb': memory['total'] / units.Mi,
             'memory_mb_used': memory['used'] / units.Mi,
             'local_gb': disk['total'] / units.Gi,
