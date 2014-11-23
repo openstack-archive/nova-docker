@@ -429,6 +429,11 @@ class DockerDriver(driver.ComputeDriver):
                 image_meta.get('properties', {}).get('os_command_line')):
             args['command'] = image_meta['properties'].get('os_command_line')
 
+        if (image_meta and
+                image_meta.get('properties', {}).get('working_directory')):
+            args['WorkingDir'] = image_meta['properties'].get(
+                'working_directory')
+
         if 'metadata' in instance:
             args['environment'] = nova_utils.instance_meta(instance)
 
