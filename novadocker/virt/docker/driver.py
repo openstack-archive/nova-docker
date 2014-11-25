@@ -19,6 +19,7 @@ A Docker Hypervisor which allows running Linux Containers instead of VMs.
 """
 
 import os
+import shutil
 import socket
 import time
 import uuid
@@ -33,7 +34,7 @@ from nova.compute import flavors
 from nova.compute import power_state
 from nova.compute import task_states
 from nova import exception
-from nova.i18n import _
+from nova.i18n import _, _LI, _LE
 from nova.image import glance
 from nova.openstack.common import fileutils
 from nova.openstack.common import log
@@ -73,7 +74,10 @@ docker_opts = [
     cfg.StrOpt('snapshots_directory',
                default='$instances_path/snapshots',
                help='Location where docker driver will temporarily store '
-                    'snapshots.')
+                    'snapshots.'),
+    cfg.BoolOpt('inject_key',
+                default=False,
+                help='Inject the ssh public key at boot time'),
 ]
 
 CONF.register_opts(docker_opts, 'docker')
@@ -360,8 +364,18 @@ class DockerDriver(driver.ComputeDriver):
 
         return self.docker.inspect_image(self._encode_utf8(image_meta['name']))
 
+    def _get_key_binds(self, container_id, instance):
+        binds = None
+        # Handles the key injection.
+        if CONF.docker.inject_key and instance.get('key_data'):
+            key = str(instance['key_data'])
+            mount_origin = self._inject_key(container_id, key)
+            binds = {mount_origin: {'bind': '/root/.ssh', 'ro': True}}
+        return binds
+
     def _start_container(self, container_id, instance, network_info=None):
-        self.docker.start(container_id)
+        binds = self._get_key_binds(container_id, instance)
+        self.docker.start(container_id, binds=binds)
         if not network_info:
             return
         try:
@@ -405,6 +419,39 @@ class DockerDriver(driver.ComputeDriver):
 
         self._start_container(container_id, instance, network_info)
 
+    def _inject_key(self, id, key):
+        if isinstance(id, dict):
+            id = id.get('id')
+        sshdir = os.path.join(CONF.instances_path, id, '.ssh')
+        key_data = ''.join([
+            '\n',
+            '# The following ssh key was injected by Nova',
+            '\n',
+            key.strip(),
+            '\n',
+        ])
+        fileutils.ensure_tree(sshdir)
+        keys_file = os.path.join(sshdir, 'authorized_keys')
+        with open(keys_file, 'a') as f:
+            f.write(key_data)
+        os.chmod(sshdir, 0o700)
+        os.chmod(keys_file, 0o600)
+        return sshdir
+
+    def _cleanup_key(self, instance, id):
+        if isinstance(id, dict):
+            id = id.get('id')
+        dir = os.path.join(CONF.instances_path, id)
+        if os.path.exists(dir):
+            LOG.info(_LI('Deleting instance files %s'), dir,
+                     instance=instance)
+            try:
+                shutil.rmtree(dir)
+            except OSError as e:
+                LOG.error(_LE('Failed to cleanup directory %(target)s: '
+                              '%(e)s'), {'target': dir, 'e': e},
+                          instance=instance)
+
     def restore(self, instance):
         container_id = self._get_container_id(instance)
         if not container_id:
@@ -441,6 +488,8 @@ class DockerDriver(driver.ComputeDriver):
         self.docker.remove_container(container_id, force=True)
         network.teardown_network(container_id)
         self.unplug_vifs(instance, network_info)
+        if CONF.docker.inject_key:
+            self._cleanup_key(instance, container_id)
 
     def reboot(self, context, instance, network_info, reboot_type,
                block_device_info=None, bad_volumes_callback=None):
@@ -458,7 +507,8 @@ class DockerDriver(driver.ComputeDriver):
                         exc_info=True)
             return
 
-        self.docker.start(container_id)
+        binds = self._get_key_binds(container_id, instance)
+        self.docker.start(container_id, binds=binds)
         try:
             if network_info:
                 self.plug_vifs(instance, network_info)
@@ -472,7 +522,8 @@ class DockerDriver(driver.ComputeDriver):
         container_id = self._get_container_id(instance)
         if not container_id:
             return
-        self.docker.start(container_id)
+        binds = self._get_key_binds(container_id, instance)
+        self.docker.start(container_id, binds=binds)
         if not network_info:
             return
         try:
