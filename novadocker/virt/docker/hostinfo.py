@@ -15,9 +15,13 @@
 
 import os
 
+from oslo.config import cfg
+
+CONF = cfg.CONF
+
 
 def statvfs():
-    docker_path = '/var/lib/docker'
+    docker_path = CONF.root_directory
     if not os.path.exists(docker_path):
         docker_path = '/'
     return os.statvfs(docker_path)
