@@ -53,6 +53,9 @@ CONF.import_opt('my_ip', 'nova.netconf')
 CONF.import_opt('instances_path', 'nova.compute.manager')
 
 docker_opts = [
+    cfg.StrOpt('root_directory',
+               default='/var/lib/docker',
+               help='Path to use as the root of the Docker runtime.'),
     cfg.StrOpt('host_url',
                default='unix:///var/run/docker.sock',
                help='tcp://host:port to bind/connect to or '
