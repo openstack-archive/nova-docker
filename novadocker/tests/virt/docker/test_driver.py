@@ -357,6 +357,14 @@ class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
             pid = driver._find_container_pid("fake_container_id")
             self.assertEqual(pid, '12345')
 
+    def test_get_console_output_with_no_container(self):
+        driver = novadocker.virt.docker.driver.DockerDriver(None)
+        with mock.patch.object(driver,
+                               "_get_container_id") as get_container_id:
+            get_container_id.return_value = None
+            logs = driver.get_console_output(None, None)
+            self.assertEqual('', logs)
+
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
                        '_find_container_by_name',
                        return_value={'id': 'fake_id'})
