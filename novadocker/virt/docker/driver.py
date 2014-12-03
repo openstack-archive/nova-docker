@@ -392,7 +392,7 @@ class DockerDriver(driver.ComputeDriver):
 
     def spawn(self, context, instance, image_meta, injected_files,
               admin_password, network_info=None, block_device_info=None,
-              instance_type=None):
+              flavor=None):
         image_name = self._get_image_name(context, instance, image_meta)
         args = {
             'hostname': instance['name'],
