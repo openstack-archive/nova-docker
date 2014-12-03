@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo.concurrency import processutils
+from oslo_concurrency import processutils
 
 from nova import exception
 from nova.i18n import _
