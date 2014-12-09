@@ -367,6 +367,18 @@ class DockerDriver(driver.ComputeDriver):
 
         return self.docker.inspect_image(self._encode_utf8(image_meta['name']))
 
+    def _extract_dns_entries(self, network_info):
+        dns = []
+        if network_info:
+            for net in network_info:
+                subnets = net['network'].get('subnets', [])
+                for subnet in subnets:
+                    dns_entries = subnet.get('dns', [])
+                    for dns_entry in dns_entries:
+                        if 'address' in dns_entry:
+                            dns.append(dns_entry['address'])
+        return dns if dns else None
+
     def _get_key_binds(self, container_id, instance):
         binds = None
         # Handles the key injection.
@@ -378,7 +390,9 @@ class DockerDriver(driver.ComputeDriver):
 
     def _start_container(self, container_id, instance, network_info=None):
         binds = self._get_key_binds(container_id, instance)
-        self.docker.start(container_id, binds=binds)
+        dns = self._extract_dns_entries(network_info)
+        self.docker.start(container_id, binds=binds, dns=dns)
+
         if not network_info:
             return
         try:
@@ -511,7 +525,8 @@ class DockerDriver(driver.ComputeDriver):
             return
 
         binds = self._get_key_binds(container_id, instance)
-        self.docker.start(container_id, binds=binds)
+        dns = self._extract_dns_entries(network_info)
+        self.docker.start(container_id, binds=binds, dns=dns)
         try:
             if network_info:
                 self.plug_vifs(instance, network_info)
@@ -526,7 +541,8 @@ class DockerDriver(driver.ComputeDriver):
         if not container_id:
             return
         binds = self._get_key_binds(container_id, instance)
-        self.docker.start(container_id, binds=binds)
+        dns = self._extract_dns_entries(network_info)
+        self.docker.start(container_id, binds=binds, dns=dns)
         if not network_info:
             return
         try:
