@@ -93,6 +93,10 @@ function start_nova_hypervisor {
         die $LINENO "Docker not running"
     fi
 
+    # Gather some information
+    docker version
+    docker -D info
+
     # push the rootwrap
     sudo cp $DOCKER_DIR/etc/nova/rootwrap.d/docker.filters  /etc/nova/rootwrap.d/docker.filters
 
