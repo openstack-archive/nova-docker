@@ -1,0 +1,8 @@
+Verified+2: Jenkins
+Code-Review+2: imain <imain@redhat.com>
+Workflow+1: imain <imain@redhat.com>
+Submitted-by: Jenkins
+Submitted-at: Thu, 18 Dec 2014 21:51:46 +0000
+Reviewed-on: https://review.openstack.org/142879
+Project: stackforge/nova-docker
+Branch: refs/heads/master
