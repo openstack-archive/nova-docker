@@ -93,6 +93,20 @@ function start_nova_hypervisor {
         die $LINENO "Docker not running"
     fi
 
+    # Enable debug level logging
+    if [ -f "/etc/default/docker" ]; then
+        sudo cat /etc/default/docker
+        sudo sed -i 's/^.*DOCKER_OPTS=.*$/DOCKER_OPTS=--debug/' /etc/default/docker
+        sudo cat /etc/default/docker
+        sudo service docker restart
+    fi
+    if [ -f "/etc/sysconfig/docker" ]; then
+        sudo cat /etc/sysconfig/docker
+        sudo sed -i 's/^.*other_args=.*$/other_args=--debug/' /etc/sysconfig/docker
+        sudo cat /etc/sysconfig/docker
+        sudo systemctl restart docker
+    fi
+
     # Gather some information
     docker version
     docker -D info
