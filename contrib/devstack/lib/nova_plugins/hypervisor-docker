@@ -96,6 +96,7 @@ function start_nova_hypervisor {
     # Gather some information
     docker version
     docker -D info
+    sudo find /var/log -name docker*.log*
 
     # push the rootwrap
     sudo cp $DOCKER_DIR/etc/nova/rootwrap.d/docker.filters  /etc/nova/rootwrap.d/docker.filters
