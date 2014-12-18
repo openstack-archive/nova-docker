@@ -48,6 +48,18 @@ if [[ $VIRT_DRIVER == "docker" ]]; then
       install_package --force-yes lxc-docker socat
     fi
 
+    # Enable debug level logging
+    if [ -f "/etc/default/docker" ]; then
+        sudo cat /etc/default/docker
+        sudo sed -i 's/^.*DOCKER_OPTS=.*$/DOCKER_OPTS=--debug/' /etc/default/docker
+        sudo cat /etc/default/docker
+    fi
+    if [ -f "/etc/sysconfig/docker" ]; then
+        sudo cat /etc/sysconfig/docker
+        sudo sed -i 's/^.*other_args=.*$/other_args=--debug/' /etc/sysconfig/docker
+        sudo cat /etc/sysconfig/docker
+    fi
+
     # Start the daemon - restart just in case the package ever auto-starts...
     restart_service docker
 
@@ -61,6 +73,17 @@ if [[ $VIRT_DRIVER == "docker" ]]; then
     done"
     if ! timeout $SERVICE_TIMEOUT sh -c "$CONFIGURE_CMD"; then
       die $LINENO "docker did not start"
+    fi
+  fi
+  if [[ "$1" == "clean" ]]; then
+    # Collect docker daemon logs
+    sudo ls -altr /var/log/docker*
+    sudo ls -altr /var/log/upstart/docker*
+    if [ -d /var/log/docker ]; then
+        sudo cp /var/log/docker $BASE/logs/docker.log
+    fi
+    if [ -d /var/log/upstart/docker.log ]; then
+        sudo cp /var/log/upstart/docker.log $BASE/logs
     fi
   fi
 
