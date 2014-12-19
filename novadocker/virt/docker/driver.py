@@ -419,7 +419,11 @@ class DockerDriver(driver.ComputeDriver):
             'network_disabled': True,
         }
 
-        image = self.docker.inspect_image(self._encode_utf8(image_name))
+        try:
+            image = self.docker.inspect_image(self._encode_utf8(image_name))
+        except errors.APIError:
+            image = None
+
         if not image:
             image = self._pull_missing_image(context, image_meta, instance)
         if not (image and image['ContainerConfig']['Cmd']):
