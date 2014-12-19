@@ -39,6 +39,7 @@ from nova.image import glance
 from nova.openstack.common import fileutils
 from nova.openstack.common import log
 from nova import utils
+from nova import utils as nova_utils
 from nova.virt import driver
 from nova.virt import firewall
 from nova.virt import hardware
@@ -427,6 +428,9 @@ class DockerDriver(driver.ComputeDriver):
         if (image_meta and
                 image_meta.get('properties', {}).get('os_command_line')):
             args['command'] = image_meta['properties'].get('os_command_line')
+
+        if 'metadata' in instance:
+            args['environment'] = nova_utils.instance_meta(instance)
 
         container_id = self._create_container(instance, image_name, args)
         if not container_id:
