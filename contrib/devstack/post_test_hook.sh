@@ -17,9 +17,9 @@
 # Collect docker daemon logs
 sudo ls -altr /var/log/docker*
 sudo ls -altr /var/log/upstart/docker*
-if [ -d /var/log/docker ]; then
-  sudo cp /var/log/docker $BASE/logs/docker.log
+if [ -f /var/log/docker ]; then
+  sudo cp /var/log/docker /opt/stack/logs/docker.log
 fi
-if [ -d /var/log/upstart/docker.log ]; then
-  sudo cp /var/log/upstart/docker.log $BASE/logs
+if [ -f /var/log/upstart/docker.log ]; then
+  sudo cp /var/log/upstart/docker.log /opt/stack/logs
 fi
