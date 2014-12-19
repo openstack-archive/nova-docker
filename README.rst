@@ -60,9 +60,43 @@ Images may now be saved directly to Glance::
   $ docker pull busybox
   $ docker save busybox | glance image-create --is-public=True --container-format=docker --disk-format=raw --name busybox
 
-**Note:** At present, only administrators should be allowed to manage images.
+**Note:** At present, only administrators should be allowed to manage images.  With devstack you can make yourself administrator by sourcing openrc as::
+
+  source openrc admin
+
+Once done you can go back to a user::
+
+  source openrc demo
 
 The name of the image in Glance should be explicitly set to the same name as the image as it is known to Docker. In the example above, an image has been tagged in Docker as 'busybox'. Matching this is the '--name busybox' argument to *glance image-create*. If these names do not align, the image will not be bootable.
+
+^^^^^^^^^^^^^^^^^^^^^
+3. Generate a keypair
+^^^^^^^^^^^^^^^^^^^^^
+
+You can optionally create a keypair to use in your docker images::
+
+  nova keypair-add mykey > mykey.pem
+
+^^^^^^^^^^^^^^^^^^^^^
+4. Start a container
+^^^^^^^^^^^^^^^^^^^^^
+
+Start a new container.  This uses the key created above::
+
+  nova boot --flavor m1.small --image cirros --key-name mykey test1
+
+^^^^^^^^^^^^^^^^^^^^^
+5. ssh into container
+^^^^^^^^^^^^^^^^^^^^^
+
+You can check the IP address of the container by using::
+
+  nova list
+
+And then ssh into it::
+
+  ssh -i ../devstack/mykey.pem cirros@<IP ADDRESS>
 
 -----
 Notes
