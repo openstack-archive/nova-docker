@@ -11,7 +11,27 @@ Installation & Configuration
 ----------------------------
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-1. Install the python modules.
+1. Clone the nova-docker repo.
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Clone the Repo::
+
+  $ git clone https://github.com/stackforge/nova-docker.git
+  $ cd nova-docker
+
+For Icehouse Release::
+
+  $ git checkout 9045ca4
+
+For Juno Release::
+
+  $ git checkout 2f23a09
+
+
+
+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2. Install the python modules.
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 For example::
@@ -21,7 +41,7 @@ For example::
 Note: There are better and cleaner ways of managing Python modules, such as using distribution packages or 'pip'. The setup.py file and Debian's stdeb, for instance, may be used to create Debian/Ubuntu packages.
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2. Enable the driver in Nova's configuration
+3. Enable the driver in Nova's configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In nova.conf::
@@ -29,7 +49,7 @@ In nova.conf::
   compute_driver=novadocker.virt.docker.DockerDriver
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-3. Optionally tune site-specific settings.
+4. Optionally tune site-specific settings.
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In nova.conf::
