@@ -45,6 +45,7 @@ if [[ $VIRT_DRIVER == "docker" ]]; then
       install_package python-software-properties && \
           sudo sh -c "echo deb $DOCKER_APT_REPO docker main > /etc/apt/sources.list.d/docker.list"
       apt_get update
+      install_package --force-yes linux-image-extra-`uname -r`
       install_package --force-yes lxc-docker socat
     fi
 
