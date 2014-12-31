@@ -23,4 +23,9 @@ export DEVSTACK_GATE_TEMPEST_REGEX='^(?!.*?(volume|resize|suspend|rescue|cinder|
 export DEVSTACK_GATE_TEMPEST=1
 export DEVSTACK_GATE_TEMPEST_FULL=0
 
+if is_ubuntu; then
+  apt_get update
+  nstall_package --force-yes linux-image-extra-`uname -r`
+fi
+
 $INSTALLDIR/devstack-gate/devstack-vm-gate.sh
