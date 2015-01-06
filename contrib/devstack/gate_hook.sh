@@ -30,4 +30,16 @@ if is_ubuntu; then
   install_package --force-yes linux-image-extra-`uname -r`
 fi
 
+trap exit_trap EXIT
+function exit_trap {
+    local r=$?
+    if [[ "$r" -eq "0" ]]; then
+        echo "All tests run successfully"
+    else
+        echo "ERROR! some tests failed, please see detailed output"
+    fi
+    echo "Collecting docker-specific logs"
+    bash -x $SCRIPTDIR/copy_logs_hook.sh
+}
+
 $INSTALLDIR/devstack-gate/devstack-vm-gate.sh
