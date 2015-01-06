@@ -12,4 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-# This script is executed inside post_test_hook function in devstack gate.
+# This script is executed inside gate_hook.sh
+
+# Find and collect docker daemon logs
+sudo find /var/log/ -name "docker*" -print -exec sudo cp {} /opt/stack/logs/ \;
