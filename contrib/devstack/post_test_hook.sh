@@ -13,13 +13,3 @@
 # under the License.
 
 # This script is executed inside post_test_hook function in devstack gate.
-
-# Collect docker daemon logs
-sudo ls -altr /var/log/docker*
-sudo ls -altr /var/log/upstart/docker*
-if [ -f /var/log/docker ]; then
-  sudo cp /var/log/docker /opt/stack/logs/docker.log
-fi
-if [ -f /var/log/upstart/docker.log ]; then
-  sudo cp /var/log/upstart/docker.log /opt/stack/logs
-fi
