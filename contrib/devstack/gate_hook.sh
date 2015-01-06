@@ -29,3 +29,8 @@ if is_ubuntu; then
 fi
 
 $INSTALLDIR/devstack-gate/devstack-vm-gate.sh
+RETVAL=$?
+
+bash -xe $SCRIPTDIR/post_test_hook.sh
+
+exit $RETVAL
