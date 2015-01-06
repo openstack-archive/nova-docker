@@ -30,4 +30,8 @@ if is_ubuntu; then
   install_package --force-yes linux-image-extra-`uname -r`
 fi
 
-$INSTALLDIR/devstack-gate/devstack-vm-gate.sh
+bash -x $INSTALLDIR/devstack-gate/devstack-vm-gate.sh
+RETVAL=$?
+
+bash -x $SCRIPTDIR/copy_logs_hook.sh
+exit $RETVAL
