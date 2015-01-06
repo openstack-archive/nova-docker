@@ -12,4 +12,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-# This script is executed inside post_test_hook function in devstack gate.
+# This script is executed inside gate_hook.sh
+
+if is_ubuntu; then
+  # Find and collect docker daemon logs
+  sudo find /var/log/ -name "docker*" -print -exec sudo cp {} /opt/stack/logs/ \;
+elif is_fedora; then
+  # fetch the docker.service logs from the journal
+  sudo journalctl _SYSTEMD_UNIT=docker.service > /opt/stack/logs/docker.log 2>&1
+fi
