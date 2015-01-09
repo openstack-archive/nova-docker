@@ -162,6 +162,43 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
                                 'uuid': 'instance_uuid'}, network_info)
             ex.assert_has_calls(calls)
 
+    def test_plug_vifs_midonet(self):
+        iface_id = '920be2f4-2b98-411e-890a-69bcabb2a5a0'
+        host_side_veth = 'tap920be2f4-2b'
+        calls = [
+            mock.call('ip', 'link', 'add', 'name', host_side_veth,
+                      'type', 'veth', 'peer', 'name', 'ns920be2f4-2b',
+                      run_as_root=True),
+
+            mock.call('ip', 'link', 'set', host_side_veth, 'up',
+                      run_as_root=True),
+
+            mock.call('mm-ctl', '--bind-port', iface_id, host_side_veth,
+                      run_as_root=True),
+        ]
+
+        network_info = [{'id': iface_id,
+                         'type': network_model.VIF_TYPE_MIDONET}]
+
+        with mock.patch('nova.utils.execute') as ex:
+            driver = docker_driver.DockerDriver(object)
+            driver.plug_vifs({'name': 'fake_instance',
+                              'uuid': 'instance_uuid'}, network_info)
+            ex.assert_has_calls(calls)
+
+    def test_unplug_vifs_midonet(self):
+        iface_id = '920be2f4-2b98-411e-890a-69bcabb2a5a0'
+        calls = [
+            mock.call('mm-ctl', '--unbind-port', iface_id, run_as_root=True)
+        ]
+        network_info = [{'id': iface_id,
+                         'type': network_model.VIF_TYPE_MIDONET}]
+        with mock.patch('nova.utils.execute') as ex:
+            driver = docker_driver.DockerDriver(object)
+            driver.unplug_vifs({'name': 'fake_instance',
+                                'uuid': 'instance_uuid'}, network_info)
+            ex.assert_has_calls(calls)
+
     @mock.patch.object(docker_driver.DockerDriver,
                        '_find_container_by_name',
                        return_value={'id': 'fake_id'})
