@@ -484,19 +484,22 @@ class DockerDriver(driver.ComputeDriver):
 
         self._start_container(container_id, instance)
 
-    def soft_delete(self, instance):
-        container_id = self._get_container_id(instance)
-        if not container_id:
-            return
+    def _stop(self, container_id, instance, timeout=0):
         try:
-            self.docker.stop(container_id)
+            self.docker.stop(container_id, timeout)
         except errors.APIError as e:
             if 'Unpause the container before stopping' not in e.explanation:
                 LOG.warning(_('Cannot stop container: %s'),
                             e, instance=instance, exc_info=True)
                 raise
             self.docker.unpause(container_id)
-            self.docker.stop(container_id)
+            self.docker.stop(container_id, timeout)
+
+    def soft_delete(self, instance):
+        container_id = self._get_container_id(instance)
+        if not container_id:
+            return
+        self._stop(container_id, instance)
 
     def destroy(self, context, instance, network_info, block_device_info=None,
                 destroy_disks=True, migrate_data=None):
@@ -521,7 +524,7 @@ class DockerDriver(driver.ComputeDriver):
         container_id = self._get_container_id(instance)
         if not container_id:
             return
-        self.docker.stop(container_id)
+        self._stop(container_id, instance)
         try:
             network.teardown_network(container_id)
             if network_info:
@@ -569,7 +572,7 @@ class DockerDriver(driver.ComputeDriver):
         container_id = self._get_container_id(instance)
         if not container_id:
             return
-        self.docker.stop(container_id, timeout)
+        self._stop(container_id, instance, timeout)
 
     def pause(self, instance):
         """Pause the specified instance.
