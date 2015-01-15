@@ -484,9 +484,9 @@ class DockerDriver(driver.ComputeDriver):
 
         self._start_container(container_id, instance)
 
-    def _stop(self, container_id, instance, timeout=0):
+    def _stop(self, container_id, instance, timeout=5):
         try:
-            self.docker.stop(container_id, timeout)
+            self.docker.stop(container_id, max(timeout, 5))
         except errors.APIError as e:
             if 'Unpause the container before stopping' not in e.explanation:
                 LOG.warning(_('Cannot stop container: %s'),
