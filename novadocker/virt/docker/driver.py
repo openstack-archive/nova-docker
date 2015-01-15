@@ -484,7 +484,7 @@ class DockerDriver(driver.ComputeDriver):
 
         self._start_container(container_id, instance)
 
-    def _stop(self, container_id, instance, timeout=0):
+    def _stop(self, container_id, instance, timeout=60):
         try:
             self.docker.stop(container_id, timeout)
         except errors.APIError as e:
@@ -568,7 +568,7 @@ class DockerDriver(driver.ComputeDriver):
             raise exception.InstanceDeployFailure(msg.format(e),
                                                   instance_id=instance['name'])
 
-    def power_off(self, instance, timeout=0, retry_interval=0):
+    def power_off(self, instance, timeout=60, retry_interval=0):
         container_id = self._get_container_id(instance)
         if not container_id:
             return
