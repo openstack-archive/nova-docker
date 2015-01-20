@@ -190,8 +190,7 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
             self.connection.spawn(self.context, instance_href, image_info,
                                   'fake_files', 'fake_password',
                                   network_info=network_info)
-            command = mc.call_args[1]['command']
-            self.assertEqual(['sh'], command)
+            self.assertIsNone(mc.call_args[1].get('command'))
 
     @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
                        '_inject_key', return_value='/tmp/.ssh')
