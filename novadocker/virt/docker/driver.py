@@ -18,6 +18,8 @@
 A Docker Hypervisor which allows running Linux Containers instead of VMs.
 """
 
+import eventlet
+
 import os
 import shutil
 import socket
@@ -36,6 +38,7 @@ from nova.compute import power_state
 from nova.compute import task_states
 from nova import exception
 from nova.i18n import _, _LI, _LE
+from nova import image
 from nova.image import glance
 from nova import objects
 from nova.openstack.common import fileutils
@@ -76,10 +79,6 @@ docker_opts = [
                     'securing docker api requests (tlskey).'),
     cfg.StrOpt('vif_driver',
                default='novadocker.virt.docker.vifs.DockerGenericVIFDriver'),
-    cfg.StrOpt('snapshots_directory',
-               default='$instances_path/snapshots',
-               help='Location where docker driver will temporarily store '
-                    'snapshots.'),
     cfg.BoolOpt('inject_key',
                 default=False,
                 help='Inject the ssh public key at boot time'),
@@ -88,6 +87,7 @@ docker_opts = [
 CONF.register_opts(docker_opts, 'docker')
 
 LOG = log.getLogger(__name__)
+IMAGE_API = image.API()
 
 
 class DockerDriver(driver.ComputeDriver):
@@ -350,24 +350,23 @@ class DockerDriver(driver.ComputeDriver):
         msg = 'Image name "%s" does not exist, fetching it...'
         LOG.debug(msg, image_meta['name'])
 
-        # TODO(imain): It would be nice to do this with file like object
-        # passing but that seems a bit complex right now.
-        snapshot_directory = CONF.docker.snapshots_directory
-        fileutils.ensure_tree(snapshot_directory)
-        with utils.tempdir(dir=snapshot_directory) as tmpdir:
+        with utils.tempdir() as tmpdir:
             try:
                 out_path = os.path.join(tmpdir, uuid.uuid4().hex)
-
-                images.fetch(context, image_meta['id'], out_path,
-                             instance['user_id'], instance['project_id'])
-                self.docker.load_repository_file(
-                    self._encode_utf8(image_meta['name']),
-                    out_path
-                )
+                os.mkfifo(out_path)
+                rfh = os.open(out_path, 'r')
+                wfh = os.open(out_path, os.O_WRONLY)
+                os.unlink(out_path)
+                download_thread = eventlet.spawn(IMAGE_API.download, context, image_meta['id'], data=wfh)
+                download_thread.link(wfh.close)
+                load_thread = eventlet.spawn(self.docker.load_image, rfh)
+                load_thread.link(rfh.close)
+                download_thread.wait()
+                load_thread.wait()
             except Exception as e:
-                LOG.warning(_('Cannot load repository file: %s'),
+                LOG.warning(_('Cannot load image: %s'),
                             e, instance=instance, exc_info=True)
-                msg = _('Cannot load repository file: {0}')
+                msg = _('Cannot load image: {0}')
                 raise exception.NovaException(msg.format(e),
                                               instance_id=image_meta['name'])
 
