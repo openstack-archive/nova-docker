@@ -330,8 +330,7 @@ class DockerDriver(driver.ComputeDriver):
             n += 1
 
     def _get_memory_limit_bytes(self, instance):
-        system_meta = utils.instance_sys_meta(instance)
-        return int(system_meta.get('instance_type_memory_mb', 0)) * units.Mi
+        return instance.flavor.memory_mb * units.Mi
 
     def _get_image_name(self, context, instance, image):
         fmt = image['container_format']
@@ -679,8 +678,7 @@ class DockerDriver(driver.ComputeDriver):
         the user (e.g. docker registry) which has
         the default CpuShares value of zero.
         """
-        flavor = flavors.extract_flavor(instance)
-        return int(flavor['vcpus']) * 1024
+        return int(instance.flavor['vcpus']) * 1024
 
     def _create_container(self, instance, image_name, args):
         name = "nova-" + instance['uuid']
