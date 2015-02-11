@@ -36,6 +36,7 @@ from nova.compute import task_states
 from nova import exception
 from nova.i18n import _, _LI, _LE
 from nova.image import glance
+from nova import objects
 from nova.openstack.common import fileutils
 from nova.openstack.common import log
 from nova import utils
@@ -330,8 +331,12 @@ class DockerDriver(driver.ComputeDriver):
             n += 1
 
     def _get_memory_limit_bytes(self, instance):
-        system_meta = utils.instance_sys_meta(instance)
-        return int(system_meta.get('instance_type_memory_mb', 0)) * units.Mi
+        if isinstance(instance, objects.Instance):
+            return instance.flavor.memory_mb * units.Mi
+        else:
+            system_meta = utils.instance_sys_meta(instance)
+            return int(system_meta.get(
+                'instance_type_memory_mb', 0)) * units.Mi
 
     def _get_image_name(self, context, instance, image):
         fmt = image['container_format']
@@ -679,7 +684,10 @@ class DockerDriver(driver.ComputeDriver):
         the user (e.g. docker registry) which has
         the default CpuShares value of zero.
         """
-        flavor = flavors.extract_flavor(instance)
+        if isinstance(instance, objects.Instance):
+            flavor = instance.flavor
+        else:
+            flavor = flavors.extract_flavor(instance)
         return int(flavor['vcpus']) * 1024
 
     def _create_container(self, instance, image_name, args):
@@ -687,5 +695,5 @@ class DockerDriver(driver.ComputeDriver):
         args.update({'name': self._encode_utf8(name)})
         return self.docker.create_container(image_name, **args)
 
-    def get_host_uptime(self, host):
+    def get_host_uptime(self):
         return hostutils.sys_uptime()
