@@ -25,10 +25,11 @@ import time
 import uuid
 
 from docker import errors
-from oslo.config import cfg
-from oslo.serialization import jsonutils
-from oslo.utils import importutils
-from oslo.utils import units
+from oslo_config import cfg
+from oslo_log import log
+from oslo_serialization import jsonutils
+from oslo_utils import importutils
+from oslo_utils import units
 
 from nova.compute import flavors
 from nova.compute import power_state
@@ -38,7 +39,6 @@ from nova.i18n import _, _LI, _LE
 from nova.image import glance
 from nova import objects
 from nova.openstack.common import fileutils
-from nova.openstack.common import log
 from nova import utils
 from nova import utils as nova_utils
 from nova.virt import driver

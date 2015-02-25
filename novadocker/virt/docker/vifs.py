@@ -16,16 +16,16 @@
 
 
 from oslo_concurrency import processutils
+from oslo_log import log as logging
 
 from nova import exception
 from nova.i18n import _
 from nova.network import linux_net
 from nova.network import manager
 from nova.network import model as network_model
-from nova.openstack.common import log as logging
 from nova import utils
 from novadocker.virt.docker import network
-from oslo.config import cfg
+from oslo_config import cfg
 import random
 
 # We need config opts from manager, but pep8 complains, this silences it.

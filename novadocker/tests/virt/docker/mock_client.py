@@ -17,7 +17,7 @@ import inspect
 import time
 import uuid
 
-from oslo.utils import timeutils
+from oslo_utils import timeutils
 from six import moves
 
 from novadocker.virt.docker import client as docker_client
