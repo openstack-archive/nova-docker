@@ -17,8 +17,8 @@ import contextlib
 import socket
 
 import mock
-from oslo.config import fixture as config_fixture
-from oslo.utils import units
+from oslo_config import fixture as config_fixture
+from oslo_utils import units
 
 from nova.compute import task_states
 from nova import context
