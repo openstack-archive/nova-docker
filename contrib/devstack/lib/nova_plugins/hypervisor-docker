@@ -76,6 +76,8 @@ function is_docker_running {
     return 0
 }
 
+pip_install docker-py
+
 # install_nova_hypervisor() - Install external components
 function install_nova_hypervisor {
     setup_develop $DOCKER_DIR
