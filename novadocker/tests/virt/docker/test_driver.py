@@ -27,14 +27,15 @@ from nova import test
 import nova.tests.image.fake
 from nova.tests import matchers
 from nova.tests import utils
-from nova.tests.virt.test_virt_drivers import _VirtDriverTestCase
+from nova.tests.virt import test_virt_drivers
 from novadocker.tests.virt.docker import mock_client
 import novadocker.virt.docker
 from novadocker.virt.docker import hostinfo
 from novadocker.virt.docker import network
 
 
-class DockerDriverTestCase(_VirtDriverTestCase, test.TestCase):
+class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
+                           test.TestCase):
 
     driver_module = 'novadocker.virt.docker.DockerDriver'
 
