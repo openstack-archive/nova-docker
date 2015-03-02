@@ -347,7 +347,12 @@ class DockerDriver(driver.ComputeDriver):
             msg = _('Image container format not supported ({0})')
             raise exception.InstanceDeployFailure(msg.format(fmt),
                                                   instance_id=instance['name'])
-        return image['name']
+        # Use the Nova UUID as the Docker image name instead of the Nova name.
+        # Nova names are not unique,neither within a single tenant or
+        # within multiple tenants.Using the Nova name is insecure as one
+        # tenant could 'poison' the cache of another
+        # tenant by using the same image name.
+        return 'nova-' + image['id']
 
     def _pull_missing_image(self, context, image_meta, instance):
         msg = 'Image name "%s" does not exist, fetching it...'
@@ -357,16 +362,29 @@ class DockerDriver(driver.ComputeDriver):
         # passing but that seems a bit complex right now.
         snapshot_directory = CONF.docker.snapshots_directory
         fileutils.ensure_tree(snapshot_directory)
+        retval = None
         with utils.tempdir(dir=snapshot_directory) as tmpdir:
             try:
                 out_path = os.path.join(tmpdir, uuid.uuid4().hex)
 
                 images.fetch(context, image_meta['id'], out_path,
                              instance['user_id'], instance['project_id'])
+                docker_name = 'nova-%s' % image_meta['id']
                 self.docker.load_repository_file(
                     self._encode_utf8(image_meta['name']),
                     out_path
                 )
+                # TODO get this from tarball?
+                original_id = image_meta['name']
+                # TODO get this from tarball?
+                original_name = image_meta['name']
+                retval = self.docker.inspect_image(
+                    self._encode_utf8(original_id))
+
+                # Re-name the image with nova-<uuid> instead of the name
+                # Docker gives it by default
+                self.docker.tag(original_id, docker_name)
+                self.docker.remove_image(original_name)
             except Exception as e:
                 LOG.warning(_('Cannot load repository file: %s'),
                             e, instance=instance, exc_info=True)
@@ -374,7 +392,7 @@ class DockerDriver(driver.ComputeDriver):
                 raise exception.NovaException(msg.format(e),
                                               instance_id=image_meta['name'])
 
-        return self.docker.inspect_image(self._encode_utf8(image_meta['name']))
+        return retval
 
     def _extract_dns_entries(self, network_info):
         dns = []
