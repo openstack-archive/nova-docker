@@ -414,7 +414,7 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
         instance_ref = utils.get_test_instance()
         image_info = utils.get_test_image_info(None, instance_ref)
         image_info['container_format'] = 'docker'
-        image_info['name'] = 'MiXeDcAsE-image'
+        image_info['name'] = 'nova-' + image_info['id']
         repo = self.connection._get_image_name(self.context,
                                                instance_ref, image_info)
 
