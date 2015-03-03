@@ -58,6 +58,8 @@ class DockerGenericVIFDriver(object):
             self.plug_bridge(instance, vif)
         elif vif_type == network_model.VIF_TYPE_OVS:
             self.plug_ovs(instance, vif)
+        elif vif_type == network_model.VIF_TYPE_MIDONET:
+            self.plug_midonet(instance, vif)
         else:
             raise exception.NovaException(
                 _("Unexpected vif_type=%s") % vif_type)
@@ -81,6 +83,35 @@ class DockerGenericVIFDriver(object):
                                           vif['address'],
                                           instance['uuid'])
             utils.execute('ip', 'link', 'set', if_local_name, 'up',
+                          run_as_root=True)
+        except Exception:
+            LOG.exception("Failed to configure network")
+            msg = _('Failed to setup the network, rolling back')
+            undo_mgr.rollback_and_reraise(msg=msg, instance=instance)
+
+    def plug_midonet(self, instance, vif):
+        """Plug into MidoNet's network port
+
+        This accomplishes binding of the vif to a MidoNet virtual port
+        """
+        if_local_name = 'tap%s' % vif['id'][:11]
+        if_remote_name = 'ns%s' % vif['id'][:11]
+        port_id = network.get_ovs_interfaceid(vif)
+
+        # Device already exists so return.
+        if linux_net.device_exists(if_local_name):
+            return
+
+        undo_mgr = utils.UndoManager()
+        try:
+            utils.execute('ip', 'link', 'add', 'name', if_local_name, 'type',
+                          'veth', 'peer', 'name', if_remote_name,
+                          run_as_root=True)
+            undo_mgr.undo_with(lambda: utils.execute(
+                'ip', 'link', 'delete', if_local_name, run_as_root=True))
+            utils.execute('ip', 'link', 'set', if_local_name, 'up',
+                          run_as_root=True)
+            utils.execute('mm-ctl', '--bind-port', port_id, if_local_name,
                           run_as_root=True)
         except Exception:
             LOG.exception("Failed to configure network")
@@ -167,6 +198,8 @@ class DockerGenericVIFDriver(object):
             self.unplug_bridge(instance, vif)
         elif vif_type == network_model.VIF_TYPE_OVS:
             self.unplug_ovs(instance, vif)
+        elif vif_type == network_model.VIF_TYPE_MIDONET:
+            self.unplug_midonet(instance, vif)
         else:
             raise exception.NovaException(
                 _("Unexpected vif_type=%s") % vif_type)
@@ -176,6 +209,17 @@ class DockerGenericVIFDriver(object):
         try:
             linux_net.delete_ovs_vif_port(vif['network']['bridge'],
                                           vif['devname'])
+        except processutils.ProcessExecutionError:
+            LOG.exception(_("Failed while unplugging vif"), instance=instance)
+
+    def unplug_midonet(self, instance, vif):
+        """Unplug into MidoNet's network port
+
+        This accomplishes unbinding of the vif from its MidoNet virtual port
+        """
+        try:
+            utils.execute('mm-ctl', '--unbind-port',
+                          network.get_ovs_interfaceid(vif), run_as_root=True)
         except processutils.ProcessExecutionError:
             LOG.exception(_("Failed while unplugging vif"), instance=instance)
 
