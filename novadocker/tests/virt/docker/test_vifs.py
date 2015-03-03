@@ -138,6 +138,65 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
                               'uuid': 'instance_uuid'}, network_info)
             ex.assert_has_calls(calls)
 
+    def test_plug_vifs_ovs_hybrid(self):
+        iface_id = '920be2f4-2b98-411e-890a-69bcabb2a5a0'
+        calls = [
+            mock.call('brctl', 'addbr', 'qbr920be2f4-2b', run_as_root=True),
+
+            mock.call('brctl', 'setfd', 'qbr920be2f4-2b', 0, run_as_root=True),
+            mock.call('brctl', 'stp', 'qbr920be2f4-2b', 'off',
+                      run_as_root=True),
+            mock.call('tee', "/sys/class/net/qbr920be2f4-2b/bridge/multicast_"
+                      "snooping", run_as_root=True, process_input='0',
+                      check_exit_code=[0, 1]),
+            mock.call('ip', 'link', 'add', 'qvb920be2f4-2b', 'type',
+                      'veth', 'peer', 'name', 'qvo920be2f4-2b',
+                      run_as_root=True),
+            mock.call('ip', 'link', 'set', 'qvb920be2f4-2b', 'up',
+                      run_as_root=True),
+            mock.call('ip', 'link', 'set', 'qvb920be2f4-2b', 'promisc', 'on',
+                      run_as_root=True),
+            mock.call('ip', 'link', 'set', 'qvo920be2f4-2b', 'up',
+                      run_as_root=True),
+            mock.call('ip', 'link', 'set', 'qvo920be2f4-2b', 'promisc', 'on',
+                      run_as_root=True),
+            mock.call('ip', 'link', 'set', 'qbr920be2f4-2b', 'up',
+                      run_as_root=True),
+            mock.call('brctl', 'addif', 'qbr920be2f4-2b', 'qvb920be2f4-2b',
+                      run_as_root=True),
+            mock.call('ovs-vsctl', '--timeout=120', '--', '--if-exists',
+                      'del-port', 'qvo920be2f4-2b', '--', 'add-port',
+                      'br-int', 'qvo920be2f4-2b', '--', 'set', 'Interface',
+                      'qvo920be2f4-2b', "external-ids:iface-id=920be2f4-2b98-"
+                      "411e-890a-69bcabb2a5a0",
+                      'external-ids:iface-status=active',
+                      'external-ids:attached-mac=00:11:22:33:44:55',
+                      'external-ids:vm-uuid=instance_uuid', run_as_root=True),
+            mock.call('ip', 'link', 'add', 'name', 'tap920be2f4-2b', 'type',
+                      'veth', 'peer', 'name', 'ns920be2f4-2b',
+                      run_as_root=True),
+            mock.call('brctl', 'addif', 'qbr920be2f4-2b', 'tap920be2f4-2b',
+                      run_as_root=True),
+            mock.call('ip', 'link', 'set', 'tap920be2f4-2b', 'up',
+                      run_as_root=True),
+        ]
+        network_info = [
+            {'network': {'bridge': 'br-int',
+                         'subnets': [{'gateway': {'address': '10.11.12.1'},
+                                      'cidr': '10.11.12.0/24',
+                                      'ips': [{'address': '10.11.12.3',
+                                               'type': 'fixed', 'version': 4}]
+                                      }]},
+             'address': '00:11:22:33:44:55',
+             'id': iface_id,
+             'details': {'port_filter': True, 'ovs_hybrid_plug': True},
+             'type': network_model.VIF_TYPE_OVS}]
+        with mock.patch('nova.utils.execute') as ex:
+            driver = docker_driver.DockerDriver(object)
+            driver.plug_vifs({'name': 'fake_instance',
+                              'uuid': 'instance_uuid'}, network_info)
+            ex.assert_has_calls(calls)
+
     def test_unplug_vifs_ovs(self):
         iface_id = '920be2f4-2b98-411e-890a-69bcabb2a5a0'
         calls = [
@@ -193,6 +252,31 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
         ]
         network_info = [{'id': iface_id,
                          'type': network_model.VIF_TYPE_MIDONET}]
+        with mock.patch('nova.utils.execute') as ex:
+            driver = docker_driver.DockerDriver(object)
+            driver.unplug_vifs({'name': 'fake_instance',
+                                'uuid': 'instance_uuid'}, network_info)
+            ex.assert_has_calls(calls)
+
+    def test_unplug_vifs_ovs_hybrid(self):
+        iface_id = '920be2f4-2b98-411e-890a-69bcabb2a5a0'
+        calls = [
+            mock.call('ovs-vsctl', '--timeout=120', '--', '--if-exists',
+                      'del-port', 'br-int', 'qvo920be2f4-2b',
+                      run_as_root=True)
+        ]
+        network_info = [
+            {'network': {'bridge': 'br-int',
+                         'subnets': [{'gateway': {'address': '10.11.12.1'},
+                                      'cidr': '10.11.12.0/24',
+                                      'ips': [{'address': '10.11.12.3',
+                                               'type': 'fixed', 'version': 4}]
+                                      }]},
+             'devname': 'tap920be2f4-2b',
+             'address': '00:11:22:33:44:55',
+             'id': iface_id,
+             'details': {'port_filter': True, 'ovs_hybrid_plug': True},
+             'type': network_model.VIF_TYPE_OVS}]
         with mock.patch('nova.utils.execute') as ex:
             driver = docker_driver.DockerDriver(object)
             driver.unplug_vifs({'name': 'fake_instance',
