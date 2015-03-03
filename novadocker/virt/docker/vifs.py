@@ -57,7 +57,10 @@ class DockerGenericVIFDriver(object):
         if vif_type == network_model.VIF_TYPE_BRIDGE:
             self.plug_bridge(instance, vif)
         elif vif_type == network_model.VIF_TYPE_OVS:
-            self.plug_ovs(instance, vif)
+            if self.ovs_hybrid_required(vif):
+                self.plug_ovs_hybrid(instance, vif)
+            else:
+                self.plug_ovs(instance, vif)
         elif vif_type == network_model.VIF_TYPE_MIDONET:
             self.plug_midonet(instance, vif)
         else:
@@ -116,6 +119,91 @@ class DockerGenericVIFDriver(object):
         except Exception:
             LOG.exception("Failed to configure network")
             msg = _('Failed to setup the network, rolling back')
+            undo_mgr.rollback_and_reraise(msg=msg, instance=instance)
+
+    def plug_ovs_hybrid(self, instance, vif):
+        """Plug using hybrid strategy
+
+        Create a per-VIF linux bridge, then link that bridge to the OVS
+        integration bridge via a veth device, setting up the other end
+        of the veth device just like a normal OVS port.  Then boot the
+        VIF on the linux bridge. and connect the tap port to linux bridge
+        """
+
+        if_local_name = 'tap%s' % vif['id'][:11]
+        if_remote_name = 'ns%s' % vif['id'][:11]
+        iface_id = self.get_ovs_interfaceid(vif)
+        br_name = self.get_br_name(vif['id'])
+        v1_name, v2_name = self.get_veth_pair_names(vif['id'])
+
+        # Device already exists so return.
+        if linux_net.device_exists(if_local_name):
+            return
+        undo_mgr = utils.UndoManager()
+
+        try:
+            if not linux_net.device_exists(br_name):
+                utils.execute('brctl', 'addbr', br_name, run_as_root=True)
+                # Incase of failure undo the Steps
+                # Deleting/Undoing the interface will delete all
+                # associated resources
+                undo_mgr.undo_with(lambda: utils.execute(
+                    'brctl', 'delbr', br_name, run_as_root=True))
+                # LOG.exception('Throw Test exception with bridgename %s'
+                # % br_name)
+
+                utils.execute('brctl', 'setfd', br_name, 0, run_as_root=True)
+                utils.execute('brctl', 'stp', br_name, 'off', run_as_root=True)
+                utils.execute('tee',
+                              ('/sys/class/net/%s/bridge/multicast_snooping' %
+                               br_name),
+                              process_input='0',
+                              run_as_root=True,
+                              check_exit_code=[0, 1])
+
+            if not linux_net.device_exists(v2_name):
+                linux_net._create_veth_pair(v1_name, v2_name)
+                undo_mgr.undo_with(lambda: utils.execute(
+                    'ip', 'link', 'delete', v1_name, run_as_root=True))
+
+                utils.execute('ip', 'link', 'set', br_name, 'up',
+                              run_as_root=True)
+                undo_mgr.undo_with(lambda: utils.execute('ip', 'link', 'set',
+                                                         br_name, 'down',
+                                                         run_as_root=True))
+
+                # Deleting/Undoing the interface will delete all
+                # associated resources (remove from the bridge, its
+                # pair, etc...)
+                utils.execute('brctl', 'addif', br_name, v1_name,
+                              run_as_root=True)
+
+                linux_net.create_ovs_vif_port(self.get_bridge_name(vif),
+                                              v2_name,
+                                              iface_id, vif['address'],
+                                              instance['uuid'])
+                undo_mgr.undo_with(
+                    lambda: utils.execute('ovs-vsctl', 'del-port',
+                                          self.get_bridge_name(vif),
+                                          v2_name, run_as_root=True))
+
+            utils.execute('ip', 'link', 'add', 'name', if_local_name, 'type',
+                          'veth', 'peer', 'name', if_remote_name,
+                          run_as_root=True)
+            undo_mgr.undo_with(
+                lambda: utils.execute('ip', 'link', 'delete', if_local_name,
+                                      run_as_root=True))
+
+            # Deleting/Undoing the interface will delete all
+            # associated resources (remove from the bridge, its pair, etc...)
+            utils.execute('brctl', 'addif', br_name, if_local_name,
+                          run_as_root=True)
+            utils.execute('ip', 'link', 'set', if_local_name, 'up',
+                          run_as_root=True)
+        except Exception:
+            msg = "Failed to configure Network." \
+                " Rolling back the network interfaces %s %s %s %s " % (
+                    br_name, if_local_name, v1_name, v2_name)
             undo_mgr.rollback_and_reraise(msg=msg, instance=instance)
 
     # We are creating our own mac's now because the linux bridge interface
@@ -197,7 +285,10 @@ class DockerGenericVIFDriver(object):
         if vif_type == network_model.VIF_TYPE_BRIDGE:
             self.unplug_bridge(instance, vif)
         elif vif_type == network_model.VIF_TYPE_OVS:
-            self.unplug_ovs(instance, vif)
+            if self.ovs_hybrid_required(vif):
+                self.unplug_ovs_hybrid(instance, vif)
+            else:
+                self.unplug_ovs(instance, vif)
         elif vif_type == network_model.VIF_TYPE_MIDONET:
             self.unplug_midonet(instance, vif)
         else:
@@ -220,6 +311,29 @@ class DockerGenericVIFDriver(object):
         try:
             utils.execute('mm-ctl', '--unbind-port',
                           network.get_ovs_interfaceid(vif), run_as_root=True)
+        except processutils.ProcessExecutionError:
+            LOG.exception(_("Failed while unplugging vif"), instance=instance)
+
+    def unplug_ovs_hybrid(self, instance, vif):
+        """UnPlug using hybrid strategy
+
+        Unhook port from OVS, unhook port from bridge, delete
+        bridge, and delete both veth devices.
+        """
+        try:
+            br_name = self.get_br_name(vif['id'])
+            v1_name, v2_name = self.get_veth_pair_names(vif['id'])
+
+            if linux_net.device_exists(br_name):
+                utils.execute('brctl', 'delif', br_name, v1_name,
+                              run_as_root=True)
+                utils.execute('ip', 'link', 'set', br_name, 'down',
+                              run_as_root=True)
+                utils.execute('brctl', 'delbr', br_name,
+                              run_as_root=True)
+
+            linux_net.delete_ovs_vif_port(self.get_bridge_name(vif),
+                                          v2_name)
         except processutils.ProcessExecutionError:
             LOG.exception(_("Failed while unplugging vif"), instance=instance)
 
@@ -254,3 +368,35 @@ class DockerGenericVIFDriver(object):
                               gateway, 'dev', if_remote_name, run_as_root=True)
         except Exception:
             LOG.exception("Failed to attach vif")
+
+    def get_bridge_name(self, vif):
+        return vif['network']['bridge']
+
+    def get_ovs_interfaceid(self, vif):
+        return vif.get('ovs_interfaceid') or vif['id']
+
+    def get_br_name(self, iface_id):
+        return ("qbr" + iface_id)[:network_model.NIC_NAME_LEN]
+
+    def get_veth_pair_names(self, iface_id):
+        return (("qvb%s" % iface_id)[:network_model.NIC_NAME_LEN],
+                ("qvo%s" % iface_id)[:network_model.NIC_NAME_LEN])
+
+    def ovs_hybrid_required(self, vif):
+        ovs_hybrid_required = self.get_firewall_required(vif) or \
+            self.get_hybrid_plug_enabled(vif)
+        return ovs_hybrid_required
+
+    def get_firewall_required(self, vif):
+        if vif.get('details'):
+            enabled = vif['details'].get('port_filter', False)
+            if enabled:
+                return False
+            if CONF.firewall_driver != "nova.virt.firewall.NoopFirewallDriver":
+                return True
+        return False
+
+    def get_hybrid_plug_enabled(self, vif):
+        if vif.get('details'):
+            return vif['details'].get('ovs_hybrid_plug', False)
+        return False
