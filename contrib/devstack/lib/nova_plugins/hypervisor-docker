@@ -83,6 +83,11 @@ function install_nova_hypervisor {
     #        https://review.openstack.org/#/c/84839/ is merged
 }
 
+# see https://github.com/docker/docker/pull/10739
+function docker(){
+    http_proxy= https_proxy= no_proxy= /usr/bin/docker $@
+}
+
 # start_nova_hypervisor - Start any required external services
 function start_nova_hypervisor {
     # Make sure Docker is installed
