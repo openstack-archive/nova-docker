@@ -83,6 +83,12 @@ function install_nova_hypervisor {
     #        https://review.openstack.org/#/c/84839/ is merged
 }
 
+# when docker release next version(may be 1.5.1 or 1.6), this function should be deleted
+# see https://github.com/docker/docker/pull/10739
+function docker(){
+    http_proxy= https_proxy= no_proxy= /usr/bin/docker $@
+}
+
 # start_nova_hypervisor - Start any required external services
 function start_nova_hypervisor {
     # Make sure Docker is installed
