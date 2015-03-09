@@ -1,0 +1,9 @@
+Verified+2: Jenkins
+Code-Review+2: Davanum Srinivas (dims) <davanum@gmail.com>
+Workflow+1: Davanum Srinivas (dims) <davanum@gmail.com>
+Code-Review+1: Matt Riedemann <mriedem@us.ibm.com>
+Submitted-by: Jenkins
+Submitted-at: Mon, 09 Mar 2015 02:04:03 +0000
+Reviewed-on: https://review.openstack.org/160045
+Project: stackforge/nova-docker
+Branch: refs/heads/stable/juno
