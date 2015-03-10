@@ -248,6 +248,8 @@ class DockerGenericVIFDriver(object):
                           run_as_root=True)
             utils.execute('ip', 'netns', 'exec', container_id, 'ip', 'addr',
                           'add', ip, 'dev', if_remote_name, run_as_root=True)
+            utils.execute('ip', 'netns', 'exec', container_id, 'ip', 'link',
+                          'set', if_remote_name, 'up', run_as_root=True)
             if gateway is not None:
                 utils.execute('ip', 'netns', 'exec', container_id,
                               'ip', 'route', 'replace', 'default', 'via',
