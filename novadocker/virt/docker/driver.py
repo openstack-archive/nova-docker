@@ -86,6 +86,18 @@ docker_opts = [
     cfg.BoolOpt('inject_key',
                 default=False,
                 help='Inject the ssh public key at boot time'),
+    # Credentials to pull private images, typically the admin
+    # of the private registry (or it could be any account)
+    cfg.StrOpt('registry_host',
+               default='docker-registry.myregistry.net',
+               help='private Docker registry'),
+    cfg.StrOpt('registry_username', default='admin',
+               help='private registry username'),
+    cfg.StrOpt('registry_password', default='changeme!',
+               help='private registry password'),
+    cfg.StrOpt('registry_user_email',
+               default='postmaster@docker-registry.myregistry.net',
+               help='private user email address')
 ]
 
 CONF.register_opts(docker_opts, 'docker')
@@ -103,6 +115,10 @@ class DockerDriver(driver.ComputeDriver):
         self.vif_driver = vif_class()
         self.firewall_driver = firewall.load_driver(
             default='nova.virt.firewall.NoopFirewallDriver')
+        self.registry_host = CONF.docker.registry_host
+        self.registry_username = CONF.docker.registry_username
+        self.registry_password = CONF.docker.registry_password
+        self.registry_user_email = CONF.docker.registry_user_email
 
     @property
     def docker(self):
@@ -353,7 +369,7 @@ class DockerDriver(driver.ComputeDriver):
 
     def _get_image_name(self, context, instance, image):
         fmt = image['container_format']
-        if fmt != 'docker':
+        if fmt != 'docker' and fmt != 'dockerref':
             msg = _('Image container format not supported ({0})')
             raise exception.InstanceDeployFailure(msg.format(fmt),
                                                   instance_id=instance['name'])
@@ -380,10 +396,45 @@ class DockerDriver(driver.ComputeDriver):
                 images.fetch(context, image_meta['id'], out_path,
                              instance['user_id'], instance['project_id'])
                 docker_name = 'nova-%s' % image_meta['id']
-                self.docker.load_repository_file(
-                    self._encode_utf8(image_meta['name']),
-                    out_path
-                )
+                if image_meta['container_format'] == 'dockerref':
+                    # We have a Docker reference
+                    # (a registry+image string rather than an image)
+                    with open(out_path) as reffile:
+                        refdata = reffile.read().strip()
+                    name, tag = refdata, 'latest'
+                    if ':' in refdata:
+                        name, tag = refdata.split(':')
+                    try:
+                        # First try as if it is a public image
+                        streamed_json = self.docker.pull_image(name, tag)
+                    except Exception as e:
+                        # If we fail for any reason send in the password
+                        if refdata.startswith(self.registry_host + '/'):
+                            streamed_json = self.docker.pull_image(
+                                name,
+                                tag,
+                                self.registry_username,
+                                self.registry_password,
+                                self.registry_user_email,
+                                'https://' + self.registry_host)
+                        else:
+                            # Re-raise, as we don't want to send private
+                            # credentials anywhere except private_registry_host
+                            raise
+                        # We hope to pull a single Image, although if the
+                        # tag is somehow None we'll pull multiple images
+                        pulled_ids = [id for id in
+                                      set([update['id']
+                                           for update in streamed_json if
+                                           update['status'].startswith
+                                           ('Pulling image')])]
+                        original_id = pulled_ids[0]
+                        original_name = "%s:%s" % (name, tag)
+                else:
+                    self.docker.load_repository_file(
+                        self._encode_utf8(image_meta['name']),
+                        out_path
+                    )
                 # TODO(dims): get this from tarball?
                 original_id = image_meta['name']
                 # TODO(dims): get this from tarball?
