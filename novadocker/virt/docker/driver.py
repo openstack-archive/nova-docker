@@ -332,7 +332,7 @@ class DockerDriver(driver.ComputeDriver):
 
     def _get_memory_limit_bytes(self, instance):
         if isinstance(instance, objects.Instance):
-            return instance.flavor.memory_mb * units.Mi
+            return instance.get_flavor().memory_mb * units.Mi
         else:
             system_meta = utils.instance_sys_meta(instance)
             return int(system_meta.get(
@@ -684,7 +684,7 @@ class DockerDriver(driver.ComputeDriver):
         the default CpuShares value of zero.
         """
         if isinstance(instance, objects.Instance):
-            flavor = instance.flavor
+            flavor = instance.get_flavor()
         else:
             flavor = flavors.extract_flavor(instance)
         return int(flavor['vcpus']) * 1024
