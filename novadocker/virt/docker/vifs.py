@@ -63,9 +63,47 @@ class DockerGenericVIFDriver(object):
                 self.plug_ovs(instance, vif)
         elif vif_type == network_model.VIF_TYPE_MIDONET:
             self.plug_midonet(instance, vif)
+        elif vif_type == network_model.VIF_TYPE_IOVISOR:
+            self.plug_iovisor(instance, vif)
         else:
             raise exception.NovaException(
                 _("Unexpected vif_type=%s") % vif_type)
+
+    def plug_iovisor(self, instance, vif):
+        """Plug docker vif into IOvisor
+
+        Creates a port on IOvisor and onboards the interface
+        """
+        if_local_name = 'tap%s' % vif['id'][:11]
+        if_remote_name = 'ns%s' % vif['id'][:11]
+
+        iface_id = vif['id']
+        net_id = vif['network']['id']
+        tenant_id = instance['project_id']
+
+        # Device already exists so return.
+        if linux_net.device_exists(if_local_name):
+            return
+        undo_mgr = utils.UndoManager()
+
+        try:
+            utils.execute('ip', 'link', 'add', 'name', if_local_name, 'type',
+                          'veth', 'peer', 'name', if_remote_name,
+                          run_as_root=True)
+            utils.execute('ifc_ctl', 'gateway', 'add_port', if_local_name,
+                          run_as_root=True)
+            utils.execute('ifc_ctl', 'gateway', 'ifup', if_local_name,
+                          'access_vm',
+                          vif['network']['label'] + "_" + iface_id,
+                          vif['address'], 'pgtag2=%s' % net_id,
+                          'pgtag1=%s' % tenant_id, run_as_root=True)
+            utils.execute('ip', 'link', 'set', if_local_name, 'up',
+                          run_as_root=True)
+
+        except Exception:
+            LOG.exception("Failed to configure network on IOvisor")
+            msg = _('Failed to setup the network, rolling back')
+            undo_mgr.rollback_and_reraise(msg=msg, instance=instance)
 
     def plug_ovs(self, instance, vif):
         if_local_name = 'tap%s' % vif['id'][:11]
@@ -291,9 +329,29 @@ class DockerGenericVIFDriver(object):
                 self.unplug_ovs(instance, vif)
         elif vif_type == network_model.VIF_TYPE_MIDONET:
             self.unplug_midonet(instance, vif)
+        elif vif_type == network_model.VIF_TYPE_IOVISOR:
+            self.unplug_iovisor(instance, vif)
         else:
             raise exception.NovaException(
                 _("Unexpected vif_type=%s") % vif_type)
+
+    def unplug_iovisor(self, instance, vif):
+        """Unplug vif from IOvisor
+
+        Offboard an interface and deletes port from IOvisor
+        """
+        if_local_name = 'tap%s' % vif['id'][:11]
+        iface_id = vif['id']
+        try:
+            utils.execute('ifc_ctl', 'gateway', 'ifdown',
+                          if_local_name, 'access_vm',
+                          vif['network']['label'] + "_" + iface_id,
+                          vif['address'], run_as_root=True)
+            utils.execute('ifc_ctl', 'gateway', 'del_port', if_local_name,
+                          run_as_root=True)
+            linux_net.delete_net_dev(if_local_name)
+        except processutils.ProcessExecutionError:
+            LOG.exception(_("Failed while unplugging vif"), instance=instance)
 
     def unplug_ovs(self, instance, vif):
         """Unplug the VIF by deleting the port from the bridge."""

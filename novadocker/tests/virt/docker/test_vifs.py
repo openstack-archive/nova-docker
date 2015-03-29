@@ -46,6 +46,17 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
                                    network=network_bridge,
                                    type=network_model.VIF_TYPE_BRIDGE)
 
+    network_iovisor = network_model.Network(id='network-id-xxx-yyy-zzz',
+                                            bridge='br100',
+                                            label='net1',
+                                            subnets=[subnet_bridge_4],
+                                            bridge_interface='eth0')
+
+    vif_iovisor = network_model.VIF(id='920be2f4-2b98-411e-890a-69bcabb2a5a0',
+                                    address='00:11:22:33:44:55',
+                                    network=network_iovisor,
+                                    type=network_model.VIF_TYPE_IOVISOR)
+
     def setUp(self):
         super(DockerGenericVIFDriverTestCase, self).setUp()
 
@@ -256,6 +267,53 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
             driver = docker_driver.DockerDriver(object)
             driver.unplug_vifs({'name': 'fake_instance',
                                 'uuid': 'instance_uuid'}, network_info)
+            ex.assert_has_calls(calls)
+
+    def test_plug_vifs_iovisor(self):
+        iface_id = '920be2f4-2b98-411e-890a-69bcabb2a5a0'
+        tenant_id = 'tenant1'
+        calls = [
+            mock.call('ip', 'link', 'add', 'name', 'tap920be2f4-2b', 'type',
+                      'veth', 'peer', 'name', 'ns920be2f4-2b',
+                      run_as_root=True),
+
+            mock.call('ifc_ctl', 'gateway', 'add_port', 'tap920be2f4-2b',
+                      run_as_root=True),
+
+            mock.call('ifc_ctl', 'gateway', 'ifup', 'tap920be2f4-2b',
+                      'access_vm', "net1_" + iface_id, '00:11:22:33:44:55',
+                      'pgtag2=network-id-xxx-yyy-zzz',
+                      'pgtag1=%s' % tenant_id, run_as_root=True),
+
+            mock.call('ip', 'link', 'set', 'tap920be2f4-2b', 'up',
+                      run_as_root=True),
+        ]
+
+        network_info = [self.vif_iovisor]
+
+        with mock.patch('nova.utils.execute') as ex:
+            driver = docker_driver.DockerDriver(object)
+            driver.plug_vifs({'name': 'fake_instance',
+                              'uuid': 'instance_uuid',
+                              'project_id': tenant_id}, network_info)
+            ex.assert_has_calls(calls)
+
+    def test_unplug_vifs_iovisor(self):
+        iface_id = '920be2f4-2b98-411e-890a-69bcabb2a5a0'
+        tenant_id = 'tenant1'
+        calls = [
+            mock.call('ifc_ctl', 'gateway', 'ifdown', 'tap920be2f4-2b',
+                      'access_vm', 'net1_' + iface_id, '00:11:22:33:44:55',
+                      run_as_root=True),
+            mock.call('ifc_ctl', 'gateway', 'del_port', 'tap920be2f4-2b',
+                      run_as_root=True)
+        ]
+        network_info = [self.vif_iovisor]
+        with mock.patch('nova.utils.execute') as ex:
+            driver = docker_driver.DockerDriver(object)
+            driver.unplug_vifs({'name': 'fake_instance',
+                                'uuid': 'instance_uuid',
+                                'project_id': tenant_id}, network_info)
             ex.assert_has_calls(calls)
 
     def test_unplug_vifs_ovs_hybrid(self):
