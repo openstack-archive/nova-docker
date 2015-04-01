@@ -353,6 +353,7 @@ class DockerDriver(driver.ComputeDriver):
             return
         try:
             self.plug_vifs(instance, network_info)
+            self._attach_vifs(instance, network_info)
         except Exception as e:
             LOG.warning(_('Cannot setup network on reboot: {0}').format(e))
             return
