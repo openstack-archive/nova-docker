@@ -86,7 +86,7 @@ function install_nova_hypervisor {
 # start_nova_hypervisor - Start any required external services
 function start_nova_hypervisor {
     # Make sure Docker is installed
-    if ! ( is_package_installed docker-io || is_package_installed lxc-docker ) ; then
+    if ! ( is_package_installed docker || is_package_installed docker-io || is_package_installed lxc-docker ) ; then
         die $LINENO "Docker is not installed.  Please run tools/docker/install_docker.sh"
     fi
     if ! (is_docker_running); then
