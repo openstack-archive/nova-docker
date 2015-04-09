@@ -16,12 +16,13 @@ export DEVSTACK_GATE_VIRT_DRIVER=docker
 export REQUIREMENTS_MODE=soft
 export KEEP_LOCALRC=1
 
-export ENABLED_SERVICES+=-tr-api,-tr-cond,-tr-mgr,-trove,-ceilometer-acentral,-ceilometer-acompute,-ceilometer-alarm-evaluator,-ceilometer-alarm-notifier,-ceilometer-anotification,-ceilometer-api,-ceilometer-collector,-s-account,-s-container,-s-object,-s-proxy,-sahara
+export ENABLED_SERVICES+=-ceilometer-acentral,-ceilometer-acompute,-ceilometer-alarm-evaluator,-ceilometer-alarm-notifier,-ceilometer-anotification,-ceilometer-api,-ceilometer-collector,-s-account,-s-container,-s-object,-s-proxy,-sahara
 
 export DEVSTACK_GATE_TEMPEST_REGEX='^(?!.*?(volume|resize|suspend|rescue|cinder|migrate)).*'
 
 export DEVSTACK_GATE_TEMPEST=1
 export DEVSTACK_GATE_TEMPEST_FULL=0
+export DEVSTACK_GATE_TROVE=0
 
 source $INSTALLDIR/devstack-gate/functions.sh
 source $INSTALLDIR/devstack/functions-common
