@@ -22,6 +22,7 @@ export DEVSTACK_GATE_TEMPEST_REGEX='^(?!.*?(volume|resize|suspend|rescue|cinder|
 
 export DEVSTACK_GATE_TEMPEST=1
 export DEVSTACK_GATE_TEMPEST_FULL=0
+export DEVSTACK_GATE_TROVE=0
 
 source $INSTALLDIR/devstack-gate/functions.sh
 source $INSTALLDIR/devstack/functions-common
