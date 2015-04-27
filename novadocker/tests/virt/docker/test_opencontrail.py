@@ -108,17 +108,29 @@ class DockerOpenContrailVIFDriverTestCase(test.TestCase):
                        return_value=7890)
     def test_attach_vrouter(self, mock_find_by_name, mock_find_pid):
         vid = '920be1f5-2b98-411e-890a-69bcabb2a5a0'
+        if_remote_name = 'ns%s' % vid[:8]
+        if_local_name = 'veth%s' % vid[:8]
         address = '10.1.2.1'
+        gateway = '1.1.1.254'
+        fixed_ip = '1.1.1.42/24'
         calls = [
             mock.call('mkdir', '-p', '/var/run/netns', run_as_root=True),
             mock.call('ln', '-sf', '/proc/7890/ns/net',
                       '/var/run/netns/my_vm', run_as_root=True),
-            mock.call('ip', 'link', 'set', 'ns%s' % vid[:8], 'netns', 'my_vm',
+            mock.call('ip', 'link', 'set', if_remote_name, 'netns', 'my_vm',
                       run_as_root=True),
-            mock.call('ip', 'link', 'set', 'veth%s' % vid[:8], 'up',
+            mock.call('ip', 'link', 'set', if_local_name, 'up',
                       run_as_root=True),
-            mock.call('ip', 'netns', 'exec', 'my_vm', 'dhclient',
-                      'ns%s' % vid[:8], run_as_root=True),
+            mock.call('ip', 'netns', 'exec', 'my_vm', 'ip', 'link',
+                      'set', if_remote_name, 'address', address,
+                      run_as_root=True),
+            mock.call('ip', 'netns', 'exec', 'my_vm', 'ifconfig',
+                      if_remote_name, fixed_ip, run_as_root=True),
+            mock.call('ip', 'netns', 'exec', 'my_vm', 'ip',
+                      'route', 'replace', 'default', 'via', gateway,
+                      'dev', if_remote_name, run_as_root=True),
+            mock.call('ip', 'netns', 'exec', 'my_vm', 'ip', 'link',
+                      'set', if_remote_name, 'up', run_as_root=True)
         ]
         network_info = [network_model.VIF(id=vid, address=address,
                                           network=network_model.Network(
@@ -126,7 +138,7 @@ class DockerOpenContrailVIFDriverTestCase(test.TestCase):
                                               subnets=[network_model.Subnet(
                                                   cidr='1.1.1.0/24',
                                                   gateway=network_model.IP(
-                                                      address='1.1.1.254',
+                                                      address=gateway,
                                                       type='gateway'),
                                                   ips=[network_model.IP(
                                                       address='1.1.1.42',
@@ -146,12 +158,6 @@ class DockerOpenContrailVIFDriverTestCase(test.TestCase):
     def test_unplug_vrouter(self):
         vid = '920be1f4-2b98-411e-890a-69bcabb2a5a0'
         address = '10.1.2.1'
-        calls = [
-            mock.call('ip', 'link', 'delete', 'veth%s' % vid[:8],
-                      run_as_root=True),
-        ]
         network_info = [network_model.VIF(id=vid, address=address)]
-        with mock.patch('nova.utils.execute') as ex:
-            driver = docker_driver.DockerDriver(object)
-            driver.unplug_vifs({'name': 'fake_instance'}, network_info)
-            ex.assert_has_calls(calls)
+        driver = docker_driver.DockerDriver(object)
+        driver.unplug_vifs({'name': 'fake_instance'}, network_info)
