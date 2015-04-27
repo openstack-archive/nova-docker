@@ -12,6 +12,9 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
+import platform
+
 from contrail_vrouter_api.vrouter_api import ContrailVRouterApi
 from nova.i18n import _
 from nova.network import linux_net
@@ -24,6 +27,10 @@ LOG = logging.getLogger(__name__)
 class OpenContrailVIFDriver(object):
     def __init__(self):
         self._vrouter_client = ContrailVRouterApi(doconnect=True)
+        self.dhcp_lease_database_dir = '/var/lib/dhclient/'
+        if platform.linux_distribution()[0] == 'Ubuntu':
+            self.dhcp_lease_database_dir = '/var/lib/dhcp/'
+        self.undo_mgr = utils.UndoManager()
 
     def plug(self, instance, vif):
         if_local_name = 'veth%s' % vif['id'][:8]
@@ -32,12 +39,11 @@ class OpenContrailVIFDriver(object):
         # Device already exists so return.
         if linux_net.device_exists(if_local_name):
             return
-        undo_mgr = utils.UndoManager()
 
         try:
             utils.execute('ip', 'link', 'add', if_local_name, 'type', 'veth',
                           'peer', 'name', if_remote_name, run_as_root=True)
-            undo_mgr.undo_with(lambda: utils.execute(
+            self.undo_mgr.undo_with(lambda: utils.execute(
                 'ip', 'link', 'delete', if_local_name, run_as_root=True))
 
             utils.execute('ip', 'link', 'set', if_remote_name, 'address',
@@ -46,13 +52,12 @@ class OpenContrailVIFDriver(object):
         except Exception:
             LOG.exception("Failed to configure network")
             msg = _('Failed to setup the network, rolling back')
-            undo_mgr.rollback_and_reraise(msg=msg, instance=instance)
+            self.undo_mgr.rollback_and_reraise(msg=msg, instance=instance)
 
     def attach(self, instance, vif, container_id):
         if_local_name = 'veth%s' % vif['id'][:8]
         if_remote_name = 'ns%s' % vif['id'][:8]
 
-        undo_mgr = utils.UndoManager()
         ipv4_address = '0.0.0.0'
         ipv6_address = None
         if 'subnets' in vif['network']:
@@ -91,12 +96,14 @@ class OpenContrailVIFDriver(object):
         except Exception:
             LOG.exception("Failed to attach the network")
             msg = _('Failed to attach the network, rolling back')
-            undo_mgr.rollback_and_reraise(msg=msg, instance=instance)
+            self.undo_mgr.rollback_and_reraise(msg=msg, instance=instance)
 
         # TODO(NetNS): attempt DHCP client; fallback to manual config if the
         # container doesn't have an working dhcpclient
+        lease_file = '%s/dhclient.%s.leases' % (self.dhcp_lease_database_dir,
+                                                if_remote_name)
         utils.execute('ip', 'netns', 'exec', container_id, 'dhclient',
-                      if_remote_name, run_as_root=True)
+                      '-lf', lease_file, if_remote_name, run_as_root=True)
 
     def unplug(self, instance, vif):
         try:
@@ -105,4 +112,8 @@ class OpenContrailVIFDriver(object):
             LOG.exception(_("Delete port failed"), instance=instance)
 
         if_local_name = 'veth%s' % vif['id'][:8]
+        if_remote_name = 'ns%s' % vif['id'][:8]
+        lease_file = '%s/dhclient.%s.leases' % (self.dhcp_lease_database_dir,
+                                                if_remote_name)
         utils.execute('ip', 'link', 'delete', if_local_name, run_as_root=True)
+        utils.execute('rm', lease_file, run_as_root=True)
