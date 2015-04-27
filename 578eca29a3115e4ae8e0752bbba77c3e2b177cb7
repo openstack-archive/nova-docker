@@ -1,0 +1,10 @@
+Verified+2: Jenkins
+Code-Review+1: Eric Windisch <ewindisch@docker.com>
+Code-Review+2: Davanum Srinivas (dims) <davanum@gmail.com>
+Workflow+1: Davanum Srinivas (dims) <davanum@gmail.com>
+Code-Review+1: Fawad Khaliq <fawad@plumgrid.com>
+Submitted-by: Jenkins
+Submitted-at: Mon, 27 Apr 2015 12:18:49 +0000
+Reviewed-on: https://review.openstack.org/162071
+Project: stackforge/nova-docker
+Branch: refs/heads/master
