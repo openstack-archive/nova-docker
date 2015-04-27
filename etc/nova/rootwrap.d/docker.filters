@@ -4,3 +4,6 @@
 [Filters]
 # nova/virt/docker/driver.py: 'ln', '-sf', '/var/run/netns/.*'
 ln: CommandFilter, /bin/ln, root
+
+# nova/virt/docker/opencontrail.py: 'rm', '/var/lib/*/dhclient.ns*.leases'
+rm: CommandFilter, /bin/rm, root
