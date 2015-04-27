@@ -12,6 +12,9 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
+import platform
+
 from contrail_vrouter_api.vrouter_api import ContrailVRouterApi
 from nova.i18n import _
 from nova.network import linux_net
@@ -24,6 +27,9 @@ LOG = logging.getLogger(__name__)
 class OpenContrailVIFDriver(object):
     def __init__(self):
         self._vrouter_client = ContrailVRouterApi(doconnect=True)
+        self.dhcp_lease_database_dir = '/var/lib/dhclient/'
+        if platform.linux_distribution()[0] == 'Ubuntu':
+            self.dhcp_lease_database_dir = '/var/lib/dhcp/'
 
     def plug(self, instance, vif):
         if_local_name = 'veth%s' % vif['id'][:8]
@@ -95,8 +101,10 @@ class OpenContrailVIFDriver(object):
 
         # TODO(NetNS): attempt DHCP client; fallback to manual config if the
         # container doesn't have an working dhcpclient
+        lease_file = '%s/dhclient.%s.leases' % (self.dhcp_lease_database_dir,
+                                                if_remote_name)
         utils.execute('ip', 'netns', 'exec', container_id, 'dhclient',
-                      if_remote_name, run_as_root=True)
+                      '-lf', lease_file, if_remote_name, run_as_root=True)
 
     def unplug(self, instance, vif):
         try:
@@ -105,4 +113,8 @@ class OpenContrailVIFDriver(object):
             LOG.exception(_("Delete port failed"), instance=instance)
 
         if_local_name = 'veth%s' % vif['id'][:8]
+        if_remote_name = 'ns%s' % vif['id'][:8]
+        lease_file = '%s/dhclient.%s.leases' % (self.dhcp_lease_database_dir,
+                                                if_remote_name)
         utils.execute('ip', 'link', 'delete', if_local_name, run_as_root=True)
+        utils.execute('rm', lease_file, run_as_root=True)
