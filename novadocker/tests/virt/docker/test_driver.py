@@ -23,11 +23,13 @@ from oslo_utils import units
 from nova.compute import task_states
 from nova import context
 from nova import exception
+from nova import objects
 from nova import test
 import nova.tests.unit.image.fake
 from nova.tests.unit import matchers
 from nova.tests.unit import utils
 from nova.tests.unit.virt import test_virt_drivers
+from nova.virt import block_device as driver_block_device
 from novadocker.tests.virt.docker import mock_client
 import novadocker.virt.docker
 from novadocker.virt.docker import driver as docker_driver
@@ -208,7 +210,7 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
                 command = ms.call_args[1]
                 expected = {'binds': {'/tmp/.ssh':
                             {'bind': '/root/.ssh', 'ro': True}},
-                            'dns': None}
+                            'dns': None, 'devices': []}
                 self.assertEqual(expected, command)
 
     def test_create_container_glance_cmd(self, image_info=None,
@@ -433,3 +435,53 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
         network_info = utils.get_test_network_info()
         self.assertEqual(['0.0.0.0', '0.0.0.0'],
                          driver._extract_dns_entries(network_info))
+
+    def test_create_container_device(self, image_info=None,
+                                     instance_href=None,
+                                     network_info=None):
+        if instance_href is None:
+            instance_href = utils.get_test_instance()
+        if image_info is None:
+            image_info = utils.get_test_image_info(None, instance_href)
+            image_info['disk_format'] = 'raw'
+            image_info['container_format'] = 'docker'
+        mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
+                          '_get_guest_storage_config',
+                          return_value=['/dev/sdb:/dev/vdx']),
+
+        volume_id = '7b7674d0-29d1-4fcf-8388-93c635f585d2'
+        iqn = 'iqn.2010-10.org.openstack:volume-' + volume_id
+        block_device_info = (
+            {'block_device_mapping': [
+                {'connection_info': {
+                    'driver_volume_type': 'iscsi',
+                    'serial': '7b7674d0-29d1-4fcf-8388-93c635f585d2',
+                    'data': {'access_mode': 'rw',
+                             'target_discovered': False,
+                             'encrypted': False,
+                             'qos_specs': None,
+                             'target_iqn': iqn,
+                             'target_portal': '186.100.41.110:3260',
+                             'volume_id': volume_id,
+                             'target_lun': 1,
+                             'auth_password': 'HwPA6XdQcVsLntst',
+                             'auth_username': 'Y22wN3VPxyWRieaUvFWM',
+                             'auth_method': 'CHAP'}},
+                 'mount_device': '/dev/vdx',
+                 'delete_on_termination': False}],
+             'root_device_name': '/dev/sda',
+             'ephemerals': [], 'swap': None})
+        bdm = objects.BlockDeviceMapping()
+        bdm['connection_info'] = 'fake_connection_info'
+        self.stubs.Set(objects.BlockDeviceMapping,
+                       'get_by_volume_id', classmethod(lambda *a, **k: None))
+        self.stubs.Set(driver_block_device.DriverVolumeBlockDevice,
+                       '__init__', classmethod(lambda *a, **k: None))
+        self.stubs.Set(driver_block_device.DriverVolumeBlockDevice,
+                       'save', classmethod(lambda *a, **k: None))
+        self.connection.spawn(self.context, instance_href, image_info,
+                              'fake_files', 'fake_password',
+                              network_info=network_info,
+                              block_device_info=block_device_info)
+        self.assertEqual(self.mock_client.name, "nova-{0}".format(
+            instance_href['uuid']))
