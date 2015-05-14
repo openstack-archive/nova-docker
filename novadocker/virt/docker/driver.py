@@ -35,7 +35,6 @@ from nova.compute import flavors
 from nova.compute import power_state
 from nova.compute import task_states
 from nova import exception
-from nova.i18n import _, _LI, _LE
 from nova.image import glance
 from nova import objects
 from nova.openstack.common import fileutils
@@ -45,6 +44,7 @@ from nova.virt import driver
 from nova.virt import firewall
 from nova.virt import hardware
 from nova.virt import images
+from novadocker.i18n import _, _LI, _LE
 from novadocker.virt.docker import client as docker_client
 from novadocker.virt.docker import hostinfo
 from novadocker.virt.docker import network

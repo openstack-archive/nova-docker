@@ -19,11 +19,11 @@ from oslo_concurrency import processutils
 from oslo_log import log as logging
 
 from nova import exception
-from nova.i18n import _
 from nova.network import linux_net
 from nova.network import manager
 from nova.network import model as network_model
 from nova import utils
+from novadocker.i18n import _
 from novadocker.virt.docker import network
 from oslo_config import cfg
 import random

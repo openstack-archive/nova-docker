@@ -13,10 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 from contrail_vrouter_api.vrouter_api import ContrailVRouterApi
-from nova.i18n import _
 from nova.network import linux_net
 from nova import utils
 from oslo_log import log as logging
+
+from novadocker.i18n import _
 
 LOG = logging.getLogger(__name__)
 

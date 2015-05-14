@@ -17,8 +17,9 @@ from oslo_concurrency import processutils
 from oslo_log import log
 
 from nova import exception
-from nova.i18n import _
 from nova import utils
+
+from novadocker.i18n import _
 
 LOG = log.getLogger(__name__)
 
