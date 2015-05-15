@@ -13,7 +13,6 @@ export INSTALLDIR=$BASE/new
 bash -xe $SCRIPTDIR/prepare_devstack.sh
 
 export DEVSTACK_GATE_VIRT_DRIVER=docker
-export REQUIREMENTS_MODE=soft
 export KEEP_LOCALRC=1
 
 export DEVSTACK_GATE_TEMPEST_REGEX='^(?!.*?(volume|resize|suspend|rescue|cinder|migrate)).*'
