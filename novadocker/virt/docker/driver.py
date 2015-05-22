@@ -31,9 +31,12 @@ from oslo_serialization import jsonutils
 from oslo_utils import importutils
 from oslo_utils import units
 
+from nova.compute import arch
 from nova.compute import flavors
+from nova.compute import hv_type
 from nova.compute import power_state
 from nova.compute import task_states
+from nova.compute import vm_mode
 from nova import exception
 from nova.image import glance
 from nova import objects
@@ -306,8 +309,8 @@ class DockerDriver(driver.ComputeDriver):
             'hypervisor_hostname': self._nodename,
             'cpu_info': '?',
             'supported_instances': jsonutils.dumps([
-                ('i686', 'docker', 'lxc'),
-                ('x86_64', 'docker', 'lxc')
+                (arch.I686, hv_type.DOCKER, vm_mode.EXE),
+                (arch.X86_64, hv_type.DOCKER, vm_mode.EXE)
             ])
         }
         return stats
