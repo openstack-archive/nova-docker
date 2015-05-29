@@ -12,21 +12,43 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
+import eventlet
+
 from contrail_vrouter_api.vrouter_api import ContrailVRouterApi
+
 from nova.network import linux_net
+from nova.openstack.common import loopingcall
 from nova import utils
+
 from oslo_log import log as logging
 
 from novadocker.i18n import _
+from novadocker.virt.docker import network
+
 
 LOG = logging.getLogger(__name__)
 
 
 class OpenContrailVIFDriver(object):
     def __init__(self):
-        self._vrouter_client = ContrailVRouterApi(doconnect=True)
+        self._vrouter_semaphore = eventlet.semaphore.Semaphore()
+        self._vrouter_client = ContrailVRouterApi(
+            doconnect=True, semaphore=self._vrouter_semaphore)
+        timer = loopingcall.FixedIntervalLoopingCall(self._keep_alive)
+        timer.start(interval=2)
+
+    def _keep_alive(self):
+        self._vrouter_client.periodic_connection_check()
 
     def plug(self, instance, vif):
+        vif_type = vif['type']
+
+        LOG.debug('Plug vif_type=%(vif_type)s instance=%(instance)s '
+                  'vif=%(vif)s',
+                  {'vif_type': vif_type, 'instance': instance,
+                   'vif': vif})
+
         if_local_name = 'veth%s' % vif['id'][:8]
         if_remote_name = 'ns%s' % vif['id'][:8]
 
@@ -50,10 +72,19 @@ class OpenContrailVIFDriver(object):
             undo_mgr.rollback_and_reraise(msg=msg, instance=instance)
 
     def attach(self, instance, vif, container_id):
+        vif_type = vif['type']
+
+        LOG.debug('Attach vif_type=%(vif_type)s instance=%(instance)s '
+                  'vif=%(vif)s',
+                  {'vif_type': vif_type, 'instance': instance,
+                   'vif': vif})
+
         if_local_name = 'veth%s' % vif['id'][:8]
         if_remote_name = 'ns%s' % vif['id'][:8]
 
         undo_mgr = utils.UndoManager()
+        undo_mgr.undo_with(lambda: utils.execute(
+            'ip', 'link', 'delete', if_local_name, run_as_root=True))
         ipv4_address = '0.0.0.0'
         ipv6_address = None
         if 'subnets' in vif['network']:
@@ -94,16 +125,39 @@ class OpenContrailVIFDriver(object):
             msg = _('Failed to attach the network, rolling back')
             undo_mgr.rollback_and_reraise(msg=msg, instance=instance)
 
-        # TODO(NetNS): attempt DHCP client; fallback to manual config if the
-        # container doesn't have an working dhcpclient
-        utils.execute('ip', 'netns', 'exec', container_id, 'dhclient',
-                      if_remote_name, run_as_root=True)
+        try:
+            ip = network.find_fixed_ip(instance, vif['network'])
+            gateway = network.find_gateway(instance, vif['network'])
+            utils.execute('ip', 'netns', 'exec', container_id, 'ip', 'link',
+                          'set', if_remote_name, 'address', vif['address'],
+                          run_as_root=True)
+            if ipv6_address:
+                utils.execute('ip', 'netns', 'exec', container_id, 'ifconfig',
+                              if_remote_name, 'inet6', 'add', ip,
+                              run_as_root=True)
+                utils.execute('ip', 'netns', 'exec', container_id, 'ip', '-6',
+                              'route', 'replace', 'default', 'via', gateway,
+                              'dev', if_remote_name, run_as_root=True)
+            else:
+                utils.execute('ip', 'netns', 'exec', container_id, 'ifconfig',
+                              if_remote_name, ip, run_as_root=True)
+                utils.execute('ip', 'netns', 'exec', container_id, 'ip',
+                              'route', 'replace', 'default', 'via', gateway,
+                              'dev', if_remote_name, run_as_root=True)
+            utils.execute('ip', 'netns', 'exec', container_id, 'ip', 'link',
+                          'set', if_remote_name, 'up', run_as_root=True)
+        except Exception:
+            LOG.exception(_("Failed to attach vif"), instance=instance)
 
     def unplug(self, instance, vif):
+        vif_type = vif['type']
+
+        LOG.debug('Unplug vif_type=%(vif_type)s instance=%(instance)s '
+                  'vif=%(vif)s',
+                  {'vif_type': vif_type, 'instance': instance,
+                   'vif': vif})
+
         try:
             self._vrouter_client.delete_port(vif['id'])
         except Exception:
             LOG.exception(_("Delete port failed"), instance=instance)
-
-        if_local_name = 'veth%s' % vif['id'][:8]
-        utils.execute('ip', 'link', 'delete', if_local_name, run_as_root=True)
