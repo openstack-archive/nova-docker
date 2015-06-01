@@ -24,7 +24,6 @@ from nova import utils
 from oslo_log import log as logging
 
 from novadocker.i18n import _
-from novadocker.virt.docker import network
 
 
 LOG = logging.getLogger(__name__)
@@ -94,9 +93,13 @@ class OpenContrailVIFDriver(object):
                 if (ips['version'] == 4):
                     if ips['address'] is not None:
                         ipv4_address = ips['address']
+                        ipv4_netmask = subnet['cidr'].split('/')[1]
+                        ipv4_gateway = subnet['gateway']['address']
                 if (ips['version'] == 6):
                     if ips['address'] is not None:
                         ipv6_address = ips['address']
+                        ipv6_netmask = subnet['cidr'].split('/')[1]
+                        ipv6_gateway = subnet['gateway']['address']
         params = {
             'ip_address': ipv4_address,
             'vn_id': vif['network']['id'],
@@ -126,19 +129,21 @@ class OpenContrailVIFDriver(object):
             undo_mgr.rollback_and_reraise(msg=msg, instance=instance)
 
         try:
-            ip = network.find_fixed_ip(instance, vif['network'])
-            gateway = network.find_gateway(instance, vif['network'])
             utils.execute('ip', 'netns', 'exec', container_id, 'ip', 'link',
                           'set', if_remote_name, 'address', vif['address'],
                           run_as_root=True)
             if ipv6_address:
+                ip = ipv6_address + "/" + ipv6_netmask
+                gateway = ipv6_gateway
                 utils.execute('ip', 'netns', 'exec', container_id, 'ifconfig',
                               if_remote_name, 'inet6', 'add', ip,
                               run_as_root=True)
                 utils.execute('ip', 'netns', 'exec', container_id, 'ip', '-6',
                               'route', 'replace', 'default', 'via', gateway,
                               'dev', if_remote_name, run_as_root=True)
-            else:
+            if ipv4_address != '0.0.0.0':
+                ip = ipv4_address + "/" + ipv4_netmask
+                gateway = ipv4_gateway
                 utils.execute('ip', 'netns', 'exec', container_id, 'ifconfig',
                               if_remote_name, ip, run_as_root=True)
                 utils.execute('ip', 'netns', 'exec', container_id, 'ip',
@@ -151,6 +156,7 @@ class OpenContrailVIFDriver(object):
 
     def unplug(self, instance, vif):
         vif_type = vif['type']
+        if_local_name = 'veth%s' % vif['id'][:8]
 
         LOG.debug('Unplug vif_type=%(vif_type)s instance=%(instance)s '
                   'vif=%(vif)s',
@@ -159,5 +165,8 @@ class OpenContrailVIFDriver(object):
 
         try:
             self._vrouter_client.delete_port(vif['id'])
+            if linux_net.device_exists(if_local_name):
+                utils.execute('ip', 'link', 'delete', if_local_name,
+                              run_as_root=True)
         except Exception:
             LOG.exception(_("Delete port failed"), instance=instance)
