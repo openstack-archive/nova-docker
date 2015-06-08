@@ -435,6 +435,7 @@ class DockerDriver(driver.ComputeDriver):
             'mem_limit': self._get_memory_limit_bytes(instance),
             'cpu_shares': self._get_cpu_shares(instance),
             'network_disabled': True,
+            'tty': True,
         }
 
         try:
