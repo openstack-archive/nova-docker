@@ -84,7 +84,7 @@ You can optionally create a keypair to use in your docker images::
 
 Start a new container.  This uses the key created above::
 
-  nova boot --flavor m1.small --image cirros --key-name mykey test1
+  nova boot --flavor m1.small --image busybox --key-name mykey test1
 
 ^^^^^^^^^^^^^^^^^^^^^
 5. ssh into container
