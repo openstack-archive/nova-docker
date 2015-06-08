@@ -291,6 +291,17 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
         byname_mock.assert_called_with(instance['name'])
         teardown_mock.assert_called_with('fake_id')
 
+    @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
+                       'unplug_vifs')
+    @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
+                       '_find_container_by_name',
+                       return_value={})
+    def test_cleanup_container_notfound(self, byname_mock, unplug_mock):
+        instance = utils.get_test_instance()
+        self.connection.cleanup(self.context, instance, 'fake_networkinfo')
+        byname_mock.assert_called_with(instance['name'])
+        unplug_mock.assert_called_once_with(instance, 'fake_networkinfo')
+
     def test_soft_delete_restore_container(self):
         instance_href = utils.get_test_instance()
         image_info = utils.get_test_image_info(None, instance_href)
