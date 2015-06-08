@@ -528,6 +528,7 @@ class DockerDriver(driver.ComputeDriver):
         """Cleanup after instance being destroyed by Hypervisor."""
         container_id = self._get_container_id(instance)
         if not container_id:
+            self.unplug_vifs(instance, network_info)
             return
         self.docker.remove_container(container_id, force=True)
         network.teardown_network(container_id)
