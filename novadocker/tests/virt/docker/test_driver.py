@@ -14,6 +14,7 @@
 #    under the License.
 
 import contextlib
+import os
 import socket
 
 import mock
@@ -433,3 +434,20 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
         network_info = utils.get_test_network_info()
         self.assertEqual(['0.0.0.0', '0.0.0.0'],
                          driver._extract_dns_entries(network_info))
+
+    @mock.patch.object(os.path, 'exists', return_value=True)
+    def test_pull_missing_image_with_shared_dir(self, mock_os):
+        self.fixture.config(shared_directory='/fake_dir', group='docker')
+        instance_ref = utils.get_test_instance()
+        image_info = utils.get_test_image_info(None, instance_ref)
+        image_info['name'] = 'fake_name'
+        image_info['id'] = 'fake_id'
+        with mock.patch.object(self.mock_client, 'load_repository_file') as f:
+            with mock.patch.object(self.mock_client, 'inspect_image') as i:
+                i.return_value = 'fake_image'
+                image = self.connection._pull_missing_image(self.context,
+                                                            image_info,
+                                                            instance_ref)
+                f.assert_called_once_with('fake_name', '/fake_dir/fake_id')
+                i.assert_called_once_with('fake_name')
+                self.assertEqual('fake_image', image)
