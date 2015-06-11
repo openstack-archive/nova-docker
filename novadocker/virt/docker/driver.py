@@ -86,6 +86,11 @@ docker_opts = [
     cfg.BoolOpt('inject_key',
                 default=False,
                 help='Inject the ssh public key at boot time'),
+    cfg.StrOpt('shared_directory',
+               default=None,
+               help='Shared directory where glance images located. If '
+                    'specified, docker will try to load the image from '
+                    'the shared directory by image ID.'),
 ]
 
 CONF.register_opts(docker_opts, 'docker')
@@ -362,6 +367,22 @@ class DockerDriver(driver.ComputeDriver):
     def _pull_missing_image(self, context, image_meta, instance):
         msg = 'Image name "%s" does not exist, fetching it...'
         LOG.debug(msg, image_meta['name'])
+
+        shared_directory = CONF.docker.shared_directory
+        if (shared_directory and
+            os.path.exists(os.path.join(shared_directory, image_meta['id']))):
+            try:
+                self.docker.load_repository_file(
+                    self._encode_utf8(image_meta['name']),
+                    os.path.join(shared_directory, image_meta['id']))
+                return self.docker.inspect_image(
+                    self._encode_utf8(image_meta['name']))
+            except Exception as e:
+                # If failed to load image from shared_directory, continue
+                # to download the image from glance then load.
+                LOG.warning(_('Cannot load repository file from shared '
+                              'directory: %s'),
+                              e, instance=instance, exc_info=True)
 
         # TODO(imain): It would be nice to do this with file like object
         # passing but that seems a bit complex right now.
