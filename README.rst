@@ -70,6 +70,10 @@ Once done you can go back to a user::
 
 The name of the image in Glance should be explicitly set to the same name as the image as it is known to Docker. In the example above, an image has been tagged in Docker as 'busybox'. Matching this is the '--name busybox' argument to *glance image-create*. If these names do not align, the image will not be bootable.
 
+**Note:** There should be a long lived process running in the docker image, otherwise the instance will not be able to spawn successfully. This can be done by specifing the command through glance image property 'os_command_line'::
+
+  glance image-update --property os_command_line='/usr/sbin/sshd -D' busybox
+
 ^^^^^^^^^^^^^^^^^^^^^
 3. Generate a keypair
 ^^^^^^^^^^^^^^^^^^^^^
