@@ -51,7 +51,7 @@ if [[ $VIRT_DRIVER == "docker" ]]; then
     # Enable debug level logging
     if [ -f "/etc/default/docker" ]; then
         sudo cat /etc/default/docker
-        sudo sed -i 's/^.*DOCKER_OPTS=.*$/DOCKER_OPTS=--debug/' /etc/default/docker
+        sudo sed -i 's/^.*DOCKER_OPTS=.*$/DOCKER_OPTS=\"--debug --storage-opt dm.override_udev_sync_check=true\"/' /etc/default/docker
         sudo cat /etc/default/docker
     fi
     if [ -f "/etc/sysconfig/docker" ]; then
