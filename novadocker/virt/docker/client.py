@@ -95,7 +95,7 @@ class UnixHTTPConnection(httplib.HTTPConnection):
 
 
 class DockerHTTPClient(object):
-    VERSION = 'v1.14'
+    VERSION = 'v1.13'
 
     def __init__(self, connection=None):
         self._connection = connection
@@ -152,7 +152,7 @@ class DockerHTTPClient(object):
             'Dns': None,
             'Image': None,
             'Volumes': {},
-            'VolumesFrom': '',
+            'VolumesFrom': None,
         }
         data.update(args)
         resp = self.make_request(
