@@ -45,13 +45,13 @@ if [[ $VIRT_DRIVER == "docker" ]]; then
       install_package python-software-properties && \
           sudo sh -c "echo deb $DOCKER_APT_REPO docker main > /etc/apt/sources.list.d/docker.list"
       apt_get update
-      install_package --force-yes lxc-docker socat
+      install_package --force-yes lxc-docker-1.7.0 socat
     fi
 
     # Enable debug level logging
     if [ -f "/etc/default/docker" ]; then
         sudo cat /etc/default/docker
-        sudo sed -i 's/^.*DOCKER_OPTS=.*$/DOCKER_OPTS=\"--debug --storage-opt dm.override_udev_sync_check=true\"/' /etc/default/docker
+        sudo sed -i 's/^.*DOCKER_OPTS=.*$/DOCKER_OPTS=\"--debug -s dm.override_udev_sync_check=true\"/' /etc/default/docker
         sudo cat /etc/default/docker
     fi
     if [ -f "/etc/sysconfig/docker" ]; then
