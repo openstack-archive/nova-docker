@@ -18,10 +18,10 @@ import eventlet
 from contrail_vrouter_api.vrouter_api import ContrailVRouterApi
 
 from nova.network import linux_net
-from nova.openstack.common import loopingcall
 from nova import utils
 
 from oslo_log import log as logging
+from oslo_service import loopingcall
 
 from novadocker.i18n import _
 
