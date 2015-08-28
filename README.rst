@@ -18,7 +18,9 @@ For example::
 
   $ python setup.py install
 
-Note: There are better and cleaner ways of managing Python modules, such as using distribution packages or 'pip'. The setup.py file and Debian's stdeb, for instance, may be used to create Debian/Ubuntu packages.
+Note: There are better and cleaner ways of managing Python modules, such as
+using distribution packages or 'pip'. The setup.py file and Debian's stdeb,
+for instance, may be used to create Debian/Ubuntu packages.
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 2. Enable the driver in Nova's configuration
@@ -60,7 +62,8 @@ Images may now be saved directly to Glance::
   $ docker pull busybox
   $ docker save busybox | glance image-create --is-public=True --container-format=docker --disk-format=raw --name busybox
 
-**Note:** At present, only administrators should be allowed to manage images.  With devstack you can make yourself administrator by sourcing openrc as::
+**Note:** At present, only administrators should be allowed to manage images.
+With devstack you can make yourself administrator by sourcing openrc as::
 
   source openrc admin
 
@@ -68,13 +71,20 @@ Once done you can go back to a user::
 
   source openrc demo
 
-The name of the image in Glance should be explicitly set to the same name as the image as it is known to Docker. In the example above, an image has been tagged in Docker as 'busybox'. Matching this is the '--name busybox' argument to *glance image-create*. If these names do not align, the image will not be bootable.
+The name of the image in Glance should be explicitly set to the same name
+as the image as it is known to Docker. In the example above, an image has
+been tagged in Docker as 'busybox'. Matching this is the '--name busybox'
+argument to *glance image-create*. If these names do not align, the image
+will not be bootable.
 
-**Note:** There should be a long lived process running in the docker image, otherwise the instance will not be able to spawn successfully. This can be done by using CMD or ENTRYPOINT in DockerFile:
+**Note:** There should be a long lived process running in the docker image,
+otherwise the instance will not be able to spawn successfully. This can be
+done by using CMD or ENTRYPOINT in DockerFile:
 
   https://docs.docker.com/reference/builder/
 
-or specifing the command through glance image property 'os_command_line' for test::
+or specifing the command through glance image property 'os_command_line' for
+test::
 
   glance image-update --property os_command_line='/usr/sbin/sshd -D' busybox
 
@@ -110,8 +120,13 @@ And then ssh into it::
 Notes
 -----
 
-* Earlier releases of this driver required the deployment of a private docker registry. This is no longer required. Images are now saved and loaded from Glance.
-* Images loaded from Glance may do bad things. Only allow administrators to add images. Users may create snapshots of their containers, generating images in Glance -- these images are managed and thus safe.
+* Earlier releases of this driver required the deployment of a private docker
+  registry. This is no longer required. Images are now saved and loaded from
+  Glance.
+
+* Images loaded from Glance may do bad things. Only allow administrators to
+  add images. Users may create snapshots of their containers, generating images
+  in Glance -- these images are managed and thus safe.
 
 ----------
 Contact Us
