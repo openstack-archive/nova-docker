@@ -41,11 +41,11 @@ if [[ $VIRT_DRIVER == "docker" ]]; then
       NO_UPDATE_REPOS=True
 
       # Set up home repo
-      curl https://get.docker.io/gpg | sudo apt-key add -
+      curl -sSL https://get.docker.com/gpg | sudo apt-key add -
       install_package python-software-properties && \
-          sudo sh -c "echo deb $DOCKER_APT_REPO docker main > /etc/apt/sources.list.d/docker.list"
+          sudo sh -c "echo deb $DOCKER_APT_REPO ubuntu-trusty main > /etc/apt/sources.list.d/docker.list"
       apt_get update
-      install_package --force-yes lxc-docker socat
+      install_package --force-yes docker-engine socat
     fi
 
     # Enable debug level logging
