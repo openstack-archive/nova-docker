@@ -40,7 +40,7 @@ DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME:-${DEFAULT_IMAGE_NAME}}
 DOCKER_REGISTRY_IMAGE=${DOCKER_REGISTRY_IMAGE:-registry}
 DOCKER_REGISTRY_IMAGE_NAME=registry
 
-DOCKER_APT_REPO=${DOCKER_APT_REPO:-https://get.docker.io/ubuntu}
+DOCKER_APT_REPO=${DOCKER_APT_REPO:-https://apt.dockerproject.org/repo}
 
 
 # Entry Points

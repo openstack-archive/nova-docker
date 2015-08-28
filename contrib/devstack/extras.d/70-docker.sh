@@ -41,11 +41,11 @@ if [[ $VIRT_DRIVER == "docker" ]]; then
       NO_UPDATE_REPOS=True
 
       # Set up home repo
-      curl https://get.docker.io/gpg | sudo apt-key add -
+      curl -sSL https://get.docker.com/gpg | sudo apt-key add -
       install_package python-software-properties && \
-          sudo sh -c "echo deb $DOCKER_APT_REPO docker main > /etc/apt/sources.list.d/docker.list"
+          sudo sh -c "echo deb $DOCKER_APT_REPO ubuntu-trusty main > /etc/apt/sources.list.d/docker.list"
       apt_get update
-      install_package --force-yes lxc-docker socat
+      install_package --force-yes docker-engine socat
     fi
 
     # Enable debug level logging
@@ -65,7 +65,7 @@ if [[ $VIRT_DRIVER == "docker" ]]; then
 
     echo "Waiting for docker daemon to start..."
     DOCKER_GROUP=$(groups | cut -d' ' -f1)
-    CONFIGURE_CMD="while ! /bin/echo -e 'GET /v1.3/version HTTP/1.0\n\n' | socat - unix-connect:$DOCKER_UNIX_SOCKET 2>/dev/null | grep -q '200 OK'; do
+    CONFIGURE_CMD="while ! /bin/echo -e 'GET /version HTTP/1.0\n\n' | socat - unix-connect:$DOCKER_UNIX_SOCKET 2>/dev/null | grep -q '200 OK'; do
       # Set the right group on docker unix socket before retrying
       sudo chgrp $DOCKER_GROUP $DOCKER_UNIX_SOCKET
       sudo chmod g+rw $DOCKER_UNIX_SOCKET
