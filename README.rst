@@ -4,7 +4,7 @@ nova-docker
 
 Docker driver for OpenStack Nova.
 
-Free software: Apache license
+Free software: Apache license 2.0
 
 ----------------------------
 Installation & Configuration
