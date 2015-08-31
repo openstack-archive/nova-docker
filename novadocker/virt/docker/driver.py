@@ -323,6 +323,7 @@ class DockerDriver(driver.ComputeDriver):
             'hypervisor_version': utils.convert_version_to_int('1.0'),
             'hypervisor_hostname': self._nodename,
             'cpu_info': '?',
+            'numa_topology': None,
             'supported_instances': jsonutils.dumps([
                 (arch.I686, hv_type.DOCKER, vm_mode.EXE),
                 (arch.X86_64, hv_type.DOCKER, vm_mode.EXE)
