@@ -92,7 +92,7 @@ class DockerHTTPClient(client.Client):
         return res.status_code == 204
 
     def load_repository_file(self, name, path):
-        with open(path) as fh:
+        with open(path, 'rb') as fh:
             self.load_image(fh)
 
     def get_container_logs(self, container_id):

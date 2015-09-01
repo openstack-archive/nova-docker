@@ -224,6 +224,10 @@ class DockerDriver(driver.ComputeDriver):
         """Plug VIFs into container."""
         if not network_info:
             return
+
+        if os.name == 'nt':
+            return
+
         container_id = self._get_container_id(instance)
         if not container_id:
             return

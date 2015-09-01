@@ -316,6 +316,26 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
                                 'project_id': tenant_id}, network_info)
             ex.assert_has_calls(calls)
 
+    def test_plug_vifs_windows(self):
+        network_info = [{'type': 'hyperv'}]
+        fake_instance = mock.sentinel.instance
+        with mock.patch.object(vifs.DockerGenericVIFDriver,
+                               'plug_windows') as mock_plug_windows:
+            driver = docker_driver.DockerDriver(object)
+            driver.plug_vifs(fake_instance, network_info)
+            mock_plug_windows.assert_called_once_with(
+                fake_instance, {'type': 'hyperv'})
+
+    def test_unplug_vifs_windows(self):
+        network_info = [{'type': 'hyperv'}]
+        fake_instance = mock.sentinel.instance
+        with mock.patch.object(vifs.DockerGenericVIFDriver,
+                               'unplug_windows') as mock_unplug_windows:
+            driver = docker_driver.DockerDriver(object)
+            driver.unplug_vifs(fake_instance, network_info)
+            mock_unplug_windows.assert_called_once_with(
+                fake_instance, {'type': 'hyperv'})
+
     def test_unplug_vifs_ovs_hybrid(self):
         iface_id = '920be2f4-2b98-411e-890a-69bcabb2a5a0'
         calls = [
@@ -456,3 +476,13 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
             driver = docker_driver.DockerDriver(object)
             driver._attach_vifs({'uuid': 'fake_uuid'}, network_info)
             ex.assert_has_calls(calls)
+
+    @mock.patch.object(docker_driver, 'os')
+    def test_attach_vifs_hyperv(self, mock_os):
+        mock_os.name = 'nt'
+        with mock.patch.object(docker_driver.DockerDriver,
+                               '_get_container_id') as mock_get_container_id:
+            driver = docker_driver.DockerDriver(object)
+            driver._attach_vifs(mock.sentinel.instance,
+                                mock.sentinel.network_info)
+            self.assertFalse(mock_get_container_id.called)

@@ -29,24 +29,34 @@ import mock
 
 
 class NetworkTestCase(test.NoDBTestCase):
+    @mock.patch.object(network, 'os')
     @mock.patch.object(utils, 'execute')
-    def test_teardown_delete_network(self, utils_mock):
+    def test_teardown_delete_network(self, utils_mock, mock_os):
         id = "second-id"
         utils_mock.return_value = ("first-id\nsecond-id\nthird-id\n", None)
         network.teardown_network(id)
         utils_mock.assert_called_with('ip', 'netns', 'delete', id,
                                       run_as_root=True)
 
+    @mock.patch.object(network, 'os')
     @mock.patch.object(utils, 'execute')
-    def test_teardown_network_not_in_list(self, utils_mock):
+    def test_teardown_network_not_in_list(self, utils_mock, mock_os):
         utils_mock.return_value = ("first-id\nsecond-id\nthird-id\n", None)
         network.teardown_network("not-in-list")
         utils_mock.assert_called_with('ip', '-o', 'netns', 'list')
 
+    @mock.patch.object(network, 'os')
+    @mock.patch.object(utils, 'execute')
+    def test_teardown_network_hyperv(self, utils_mock, mock_os):
+        mock_os.name = 'nt'
+        network.teardown_network("fake_id")
+        self.assertFalse(utils_mock.execute.called)
+
+    @mock.patch.object(network, 'os')
     @mock.patch.object(network, 'LOG')
     @mock.patch.object(utils, 'execute',
                        side_effect=processutils.ProcessExecutionError)
-    def test_teardown_network_fails(self, utils_mock, log_mock):
+    def test_teardown_network_fails(self, utils_mock, log_mock, mock_os):
         # Call fails but method should not fail.
         # Error will be caught and logged.
         utils_mock.return_value = ("first-id\nsecond-id\nthird-id\n", None)

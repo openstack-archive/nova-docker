@@ -13,48 +13,60 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import posix
-
 import mock
+import multiprocessing
 
 from nova import test
 from novadocker.virt.docker import hostinfo
+import psutil
 
 
 class HostInfoTestCase(test.NoDBTestCase):
+
+    _FAKE_DISK_INFO = {'total_size': 100000,
+                       'free_size': 50000,
+                       'used_size': 50000}
 
     def setUp(self):
         super(HostInfoTestCase, self).setUp()
         self.stubs.Set(hostinfo, 'statvfs', self.statvfs)
 
     def statvfs(self):
-        seq = (4096, 4096, 10047582, 7332259, 6820195,
-               2564096, 2271310, 2271310, 1024, 255)
-        return posix.statvfs_result(sequence=seq)
+        diskinfo = psutil.namedtuple('usage', ('total', 'free', 'used'))
+        return diskinfo(self._FAKE_DISK_INFO['total_size'],
+                        self._FAKE_DISK_INFO['free_size'],
+                        self._FAKE_DISK_INFO['used_size'])
 
     def test_get_disk_usage(self):
         disk_usage = hostinfo.get_disk_usage()
-        self.assertEqual(disk_usage['total'], 41154895872)
-        self.assertEqual(disk_usage['available'], 27935518720)
-        self.assertEqual(disk_usage['used'], 11121963008)
+        self.assertEqual(disk_usage['total'],
+                         self._FAKE_DISK_INFO['total_size'])
+        self.assertEqual(disk_usage['available'],
+                         self._FAKE_DISK_INFO['free_size'])
+        self.assertEqual(disk_usage['used'],
+                         self._FAKE_DISK_INFO['used_size'])
+
+    @mock.patch.object(multiprocessing, 'cpu_count')
+    def test_get_total_vcpus(self, mock_cpu_count):
+        mock_cpu_count.return_value = 1
+
+        cpu_count = hostinfo.get_total_vcpus()
+
+        self.assertEqual(mock_cpu_count.return_value, cpu_count)
 
     def test_get_memory_usage(self):
-        meminfo_str = """MemTotal:        1018784 kB
-MemFree:         220060 kB
-Buffers:           21640 kB
-Cached:           63364 kB
-SwapCached:            0 kB
-Active:           13988 kB
-Inactive:         50616 kB
-"""
-        with mock.patch('__builtin__.open',
-                        mock.mock_open(read_data=meminfo_str),
-                        create=True) as m:
+        fake_total_memory = 4096
+        fake_used_memory = 2048
+
+        with mock.patch.object(psutil,
+                               'virtual_memory') as mock_virtual_memory:
+            mock_virtual_memory.return_value.total = fake_total_memory
+            mock_virtual_memory.return_value.used = fake_used_memory
 
             usage = hostinfo.get_memory_usage()
-            m.assert_called_once_with('/proc/meminfo')
-            self.assertEqual(usage['total'], 1043234816)
-            self.assertEqual(usage['used'], 730849280)
+
+            self.assertEqual(fake_total_memory, usage['total'])
+            self.assertEqual(fake_used_memory, usage['used'])
 
     @mock.patch('novadocker.virt.docker.hostinfo.get_mounts')
     def test_find_cgroup_devices_path_centos(self, mock):
