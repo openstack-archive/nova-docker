@@ -66,9 +66,14 @@ class DockerGenericVIFDriver(object):
             self.plug_midonet(instance, vif)
         elif vif_type == network_model.VIF_TYPE_IOVISOR:
             self.plug_iovisor(instance, vif)
+        elif vif_type == 'hyperv':
+            self.plug_windows(instance, vif)
         else:
             raise exception.NovaException(
                 _("Unexpected vif_type=%s") % vif_type)
+
+    def plug_windows(self, instance, vif):
+        pass
 
     def plug_iovisor(self, instance, vif):
         """Plug docker vif into IOvisor
@@ -332,9 +337,14 @@ class DockerGenericVIFDriver(object):
             self.unplug_midonet(instance, vif)
         elif vif_type == network_model.VIF_TYPE_IOVISOR:
             self.unplug_iovisor(instance, vif)
+        elif vif_type == 'hyperv':
+            self.unplug_windows(instance, vif)
         else:
             raise exception.NovaException(
                 _("Unexpected vif_type=%s") % vif_type)
+
+    def unplug_windows(self, instance, vif):
+        pass
 
     def unplug_iovisor(self, instance, vif):
         """Unplug vif from IOvisor

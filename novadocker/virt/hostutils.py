@@ -14,10 +14,22 @@
 #    under the License.
 
 
+import ctypes
+import datetime
+import os
+import time
+
 from nova import utils
 
 
 def sys_uptime():
-    """Returns the result of calling "uptime"."""
-    out, err = utils.execute('env', 'LANG=C', 'uptime')
-    return out
+    """Returns the host uptime."""
+
+    if os.name == 'nt':
+        tick_count64 = ctypes.windll.kernel32.GetTickCount64()
+        return ("%s up %s,  0 users,  load average: 0, 0, 0" %
+                (str(time.strftime("%H:%M:%S")),
+                 str(datetime.timedelta(milliseconds=long(tick_count64)))))
+    else:
+        out, err = utils.execute('env', 'LANG=C', 'uptime')
+        return out

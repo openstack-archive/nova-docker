@@ -13,9 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import multiprocessing
 import os
 
 from oslo_config import cfg
+import psutil
 
 CONF = cfg.CONF
 
@@ -24,7 +26,7 @@ def statvfs():
     docker_path = CONF.docker.root_directory
     if not os.path.exists(docker_path):
         docker_path = '/'
-    return os.statvfs(docker_path)
+    return psutil.disk_usage(docker_path)
 
 
 def get_disk_usage():
@@ -32,21 +34,14 @@ def get_disk_usage():
     # hardcoded in Docker so it's not configurable yet.
     st = statvfs()
     return {
-        'total': st.f_blocks * st.f_frsize,
-        'available': st.f_bavail * st.f_frsize,
-        'used': (st.f_blocks - st.f_bfree) * st.f_frsize
+        'total': st.total,
+        'available': st.free,
+        'used': st.used
     }
 
 
 def get_total_vcpus():
-    total_vcpus = 0
-
-    with open('/proc/cpuinfo') as f:
-        for ln in f.readlines():
-            if ln.startswith('processor'):
-                total_vcpus += 1
-
-    return total_vcpus
+    return multiprocessing.cpu_count()
 
 
 def get_vcpus_used(containers):
@@ -60,19 +55,10 @@ def get_vcpus_used(containers):
 
 
 def get_memory_usage():
-    with open('/proc/meminfo') as f:
-        m = f.read().split()
-        idx1 = m.index('MemTotal:')
-        idx2 = m.index('MemFree:')
-        idx3 = m.index('Buffers:')
-        idx4 = m.index('Cached:')
-
-        total = int(m[idx1 + 1])
-        avail = int(m[idx2 + 1]) + int(m[idx3 + 1]) + int(m[idx4 + 1])
-
+    vmem = psutil.virtual_memory()
     return {
-        'total': total * 1024,
-        'used': (total - avail) * 1024
+        'total': vmem.total,
+        'used': vmem.used
     }
 
 
