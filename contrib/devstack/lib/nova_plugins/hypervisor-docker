@@ -103,7 +103,7 @@ function start_nova_hypervisor {
         echo "Pulling $DOCKER_IMAGE_NAME..."
         docker pull $DOCKER_IMAGE_NAME
         echo "Saving $DOCKER_IMAGE_NAME to glance..."
-        docker save $DOCKER_IMAGE_NAME | glance image-create --is-public=True --container-format=docker --disk-format=raw --name $DEFAULT_IMAGE_NAME
+        docker save $DOCKER_IMAGE_NAME | glance image-create --container-format=docker --disk-format=raw --name $DEFAULT_IMAGE_NAME
     fi
 }
 
