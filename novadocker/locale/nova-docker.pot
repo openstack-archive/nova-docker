@@ -7,97 +7,102 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: nova-docker 0.1.1.dev79\n"
+"Project-Id-Version: nova-docker 0.1.1.dev112\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-05-14 17:40-0400\n"
+"POT-Creation-Date: 2015-09-03 15:09-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 1.3\n"
+"Generated-By: Babel 2.0\n"
 
-#: novadocker/virt/docker/driver.py:113
+#: novadocker/virt/docker/driver.py:121
 msgid ""
 "Docker daemon is not running or is not reachable (check the rights on "
 "/var/run/docker.sock)"
 msgstr ""
 
-#: novadocker/virt/docker/driver.py:213
+#: novadocker/virt/docker/driver.py:231
 msgid "Cannot find any PID under container \"{0}\""
 msgstr ""
 
-#: novadocker/virt/docker/driver.py:289
+#: novadocker/virt/docker/driver.py:307
 #, python-format
 msgid ""
 "Hostname has changed from %(old)s to %(new)s. A restart is required to "
 "take effect."
 msgstr ""
 
-#: novadocker/virt/docker/driver.py:344
+#: novadocker/virt/docker/driver.py:363
 msgid "Image container format not supported ({0})"
 msgstr ""
 
-#: novadocker/virt/docker/driver.py:368
+#: novadocker/virt/docker/driver.py:385
+#, python-format
+msgid "Cannot load repository file from shared directory: %s"
+msgstr ""
+
+#: novadocker/virt/docker/driver.py:404
 #, python-format
 msgid "Cannot load repository file: %s"
 msgstr ""
 
-#: novadocker/virt/docker/driver.py:370
+#: novadocker/virt/docker/driver.py:406
 msgid "Cannot load repository file: {0}"
 msgstr ""
 
-#: novadocker/virt/docker/driver.py:408 novadocker/virt/docker/driver.py:567
+#: novadocker/virt/docker/driver.py:444 novadocker/virt/docker/driver.py:604
 #, python-format
 msgid "Cannot setup network: %s"
 msgstr ""
 
-#: novadocker/virt/docker/driver.py:410 novadocker/virt/docker/driver.py:569
+#: novadocker/virt/docker/driver.py:446 novadocker/virt/docker/driver.py:606
 msgid "Cannot setup network: {0}"
 msgstr ""
 
-#: novadocker/virt/docker/driver.py:445
+#: novadocker/virt/docker/driver.py:481
 msgid "Cannot create container"
 msgstr ""
 
-#: novadocker/virt/docker/driver.py:495
+#: novadocker/virt/docker/driver.py:531
 #, python-format
 msgid "Cannot stop container: %s"
 msgstr ""
 
-#: novadocker/virt/docker/driver.py:536
+#: novadocker/virt/docker/driver.py:573
 msgid "Cannot destroy the container network during reboot {0}"
 msgstr ""
 
-#: novadocker/virt/docker/driver.py:549
+#: novadocker/virt/docker/driver.py:586
 msgid "Cannot setup network on reboot: {0}"
 msgstr ""
 
-#: novadocker/virt/docker/driver.py:591
+#: novadocker/virt/docker/driver.py:628
 #, python-format
 msgid "Error pause container: %s"
 msgstr ""
 
-#: novadocker/virt/docker/driver.py:593
+#: novadocker/virt/docker/driver.py:630
 msgid "Cannot pause container: {0}"
 msgstr ""
 
-#: novadocker/virt/docker/driver.py:607
+#: novadocker/virt/docker/driver.py:644
 #, python-format
 msgid "Error unpause container: %s"
 msgstr ""
 
-#: novadocker/virt/docker/driver.py:609
+#: novadocker/virt/docker/driver.py:646
 msgid "Cannot unpause container: {0}"
 msgstr ""
 
-#: novadocker/virt/docker/driver.py:665
+#: novadocker/virt/docker/driver.py:702
 #, python-format
 msgid "Error saving image: %s"
 msgstr ""
 
-#: novadocker/virt/docker/driver.py:667
+#: novadocker/virt/docker/driver.py:704
 msgid "Error saving image: {0}"
 msgstr ""
 
@@ -114,31 +119,35 @@ msgstr ""
 msgid "Cannot find gateway"
 msgstr ""
 
-#: novadocker/virt/docker/opencontrail.py:49 novadocker/virt/docker/vifs.py:105
-#: novadocker/virt/docker/vifs.py:130 novadocker/virt/docker/vifs.py:159
-#: novadocker/virt/docker/vifs.py:307
+#: novadocker/virt/docker/opencontrail.py:70 novadocker/virt/docker/vifs.py:106
+#: novadocker/virt/docker/vifs.py:131 novadocker/virt/docker/vifs.py:160
+#: novadocker/virt/docker/vifs.py:308
 msgid "Failed to setup the network, rolling back"
 msgstr ""
 
-#: novadocker/virt/docker/opencontrail.py:94
+#: novadocker/virt/docker/opencontrail.py:128
 msgid "Failed to attach the network, rolling back"
 msgstr ""
 
-#: novadocker/virt/docker/opencontrail.py:106
+#: novadocker/virt/docker/opencontrail.py:155
+msgid "Failed to attach vif"
+msgstr ""
+
+#: novadocker/virt/docker/opencontrail.py:172
 msgid "Delete port failed"
 msgstr ""
 
-#: novadocker/virt/docker/vifs.py:54 novadocker/virt/docker/vifs.py:320
+#: novadocker/virt/docker/vifs.py:55 novadocker/virt/docker/vifs.py:321
 msgid "vif_type parameter must be present for this vif_driver implementation"
 msgstr ""
 
-#: novadocker/virt/docker/vifs.py:70 novadocker/virt/docker/vifs.py:336
+#: novadocker/virt/docker/vifs.py:71 novadocker/virt/docker/vifs.py:337
 #, python-format
 msgid "Unexpected vif_type=%s"
 msgstr ""
 
-#: novadocker/virt/docker/vifs.py:354 novadocker/virt/docker/vifs.py:362
-#: novadocker/virt/docker/vifs.py:373 novadocker/virt/docker/vifs.py:396
+#: novadocker/virt/docker/vifs.py:355 novadocker/virt/docker/vifs.py:363
+#: novadocker/virt/docker/vifs.py:374 novadocker/virt/docker/vifs.py:397
 msgid "Failed while unplugging vif"
 msgstr ""
 
