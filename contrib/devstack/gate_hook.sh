@@ -15,7 +15,7 @@ bash -xe $SCRIPTDIR/prepare_devstack.sh
 export DEVSTACK_GATE_VIRT_DRIVER=docker
 export KEEP_LOCALRC=1
 
-export DEVSTACK_GATE_TEMPEST_REGEX='^(?!.*?(volume|resize|suspend|rescue|cinder|migrate|object_storage)).*'
+export DEVSTACK_GATE_TEMPEST_REGEX='^(?!.*?(boto|volume|resize|suspend|rescue|cinder|migrate|object_storage)).*'
 
 export DEVSTACK_GATE_TEMPEST=1
 export DEVSTACK_GATE_TEMPEST_FULL=0

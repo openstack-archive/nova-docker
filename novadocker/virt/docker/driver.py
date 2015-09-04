@@ -25,6 +25,7 @@ import time
 import uuid
 
 from docker import errors
+from docker import utils as docker_utils
 from oslo_config import cfg
 from oslo_log import log
 from oslo_serialization import jsonutils
@@ -728,8 +729,20 @@ class DockerDriver(driver.ComputeDriver):
 
     def _create_container(self, instance, image_name, args):
         name = "nova-" + instance['uuid']
-        args.update({'name': self._encode_utf8(name)})
-        return self.docker.create_container(image_name, **args)
+        hostname = args.pop('hostname', None)
+        cpu_shares = args.pop('cpu_shares', None)
+        network_disabled = args.pop('network_disabled', False)
+        environment = args.pop('environment', None)
+        command = args.pop('command', None)
+        host_config = docker_utils.create_host_config(**args)
+        return self.docker.create_container(image_name,
+                                            name=self._encode_utf8(name),
+                                            hostname=hostname,
+                                            cpu_shares=cpu_shares,
+                                            network_disabled=network_disabled,
+                                            environment=environment,
+                                            command=command,
+                                            host_config=host_config)
 
     def get_host_uptime(self):
         return hostutils.sys_uptime()
