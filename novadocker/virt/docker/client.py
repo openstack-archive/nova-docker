@@ -24,6 +24,8 @@ from docker import client
 from docker import tls
 
 CONF = cfg.CONF
+DEFAULT_TIMEOUT_SECONDS = 120
+DEFAULT_DOCKER_API_VERSION = '1.19'
 
 
 def filter_data(f):
@@ -68,8 +70,8 @@ class DockerHTTPClient(client.Client):
             ssl_config = False
         super(DockerHTTPClient, self).__init__(
             base_url=url,
-            version='1.13',
-            timeout=10,
+            version=DEFAULT_DOCKER_API_VERSION,
+            timeout=DEFAULT_TIMEOUT_SECONDS,
             tls=ssl_config
         )
         self._setup_decorators()
