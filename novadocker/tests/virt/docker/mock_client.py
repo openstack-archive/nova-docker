@@ -83,7 +83,6 @@ class MockClient(object):
         data = {
             'Hostname': args['hostname'],
             'User': '',
-            'Memory': args['mem_limit'],
             'MemorySwap': 0,
             'AttachStdin': False,
             'AttachStdout': False,
