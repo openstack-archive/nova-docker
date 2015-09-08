@@ -207,7 +207,8 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
                 command = ms.call_args[1]
                 expected = {'binds': {'/tmp/.ssh':
                             {'bind': '/root/.ssh', 'ro': True}},
-                            'dns': None}
+                            'dns': None,
+                            'privileged': False}
                 self.assertEqual(expected, command)
 
     def test_create_container_glance_cmd(self, image_info=None,
