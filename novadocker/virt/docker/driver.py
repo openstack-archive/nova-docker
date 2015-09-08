@@ -92,6 +92,9 @@ docker_opts = [
                help='Shared directory where glance images located. If '
                     'specified, docker will try to load the image from '
                     'the shared directory by image ID.'),
+    cfg.BoolOpt('privileged',
+                default=False,
+                help='Set true can own all root privileges in a container.'),
 ]
 
 CONF.register_opts(docker_opts, 'docker')
@@ -434,7 +437,8 @@ class DockerDriver(driver.ComputeDriver):
     def _start_container(self, container_id, instance, network_info=None):
         binds = self._get_key_binds(container_id, instance)
         dns = self._extract_dns_entries(network_info)
-        self.docker.start(container_id, binds=binds, dns=dns)
+        self.docker.start(container_id, binds=binds, dns=dns,
+                          privileged=CONF.docker.privileged)
 
         if not network_info:
             return
