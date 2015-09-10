@@ -117,6 +117,8 @@ class DockerOpenContrailVIFDriverTestCase(test.TestCase):
             mock.call('mkdir', '-p', '/var/run/netns', run_as_root=True),
             mock.call('ln', '-sf', '/proc/7890/ns/net',
                       '/var/run/netns/my_vm', run_as_root=True),
+            mock.call('ip', 'netns', 'exec', 'my_vm', 'ip', 'link',
+                      'set', 'lo', 'up', run_as_root=True),
             mock.call('ip', 'link', 'set', if_remote_name, 'netns', 'my_vm',
                       run_as_root=True),
             mock.call('ip', 'link', 'set', if_local_name, 'up',
