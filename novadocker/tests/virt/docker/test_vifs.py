@@ -351,6 +351,8 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
         calls = [
             mock.call('ln', '-sf', '/proc/1234/ns/net',
                       '/var/run/netns/fake_id', run_as_root=True),
+            mock.call('ip', 'netns', 'exec', 'fake_id', 'ip', 'link',
+                      'set', 'lo', 'up', run_as_root=True),
             mock.call('ip', 'link', 'set', 'ns920be2f4-2b', 'netns',
                       'fake_id', run_as_root=True),
             mock.call('ip', 'netns', 'exec', 'fake_id', 'ip', 'link',
@@ -392,6 +394,8 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
         calls = [
             mock.call('ln', '-sf', '/proc/1234/ns/net',
                       '/var/run/netns/fake_id', run_as_root=True),
+            mock.call('ip', 'netns', 'exec', 'fake_id', 'ip', 'link',
+                      'set', 'lo', 'up', run_as_root=True),
             # interface 1
             mock.call('ip', 'link', 'set', 'ns920be2f4-2b', 'netns', 'fake_id',
                       run_as_root=True),
