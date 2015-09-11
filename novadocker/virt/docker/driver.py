@@ -239,6 +239,8 @@ class DockerDriver(driver.ComputeDriver):
             'ln', '-sf', '/proc/{0}/ns/net'.format(nspid),
             '/var/run/netns/{0}'.format(container_id),
             run_as_root=True)
+        utils.execute('ip', 'netns', 'exec', container_id, 'ip', 'link',
+                      'set', 'lo', 'up', run_as_root=True)
 
         for vif in network_info:
             self.vif_driver.attach(instance, vif, container_id)
