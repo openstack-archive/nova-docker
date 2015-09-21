@@ -206,7 +206,7 @@ class DockerDriver(driver.ComputeDriver):
     def attach_interface(self, instance, image_meta, vif):
         """Attach an interface to the container."""
         self.vif_driver.plug(instance, vif)
-        container_id = self._find_container_by_name(instance['name']).get('id')
+        container_id = self._find_container_by_uuid(instance['uuid']).get('id')
         self.vif_driver.attach(instance, vif, container_id)
 
     def detach_interface(self, instance, vif):
@@ -254,21 +254,17 @@ class DockerDriver(driver.ComputeDriver):
     def _encode_utf8(self, value):
         return unicode(value).encode('utf-8')
 
-    def _find_container_by_name(self, name):
-        try:
-            for info in self.list_instances(inspect=True):
-                if info['Config'].get('Hostname') == name:
-                    return info
-        except errors.APIError as e:
-            if e.response.status_code != 404:
-                raise
+    def _find_container_by_uuid(self, uuid):
+        name = "nova-" + uuid
+        for container in self.docker.list_container_by_name(name):
+            return self.docker.inspect_container(container['id'])
         return {}
 
     def _get_container_id(self, instance):
-        return self._find_container_by_name(instance['name']).get('id')
+        return self._find_container_by_uuid(instance['uuid']).get('id')
 
     def get_info(self, instance):
-        container = self._find_container_by_name(instance['name'])
+        container = self._find_container_by_uuid(instance['uuid'])
         if not container:
             raise exception.InstanceNotFound(instance_id=instance['name'])
         running = container['State'].get('Running')

@@ -215,6 +215,12 @@ class MockClient(object):
             'malesuada fames ac ante ipsum primis in faucibus. ',
             'Fusce nec pellentesque nisl.'])
 
+    def list_container_by_name(self, name):
+        for container_id in self._containers:
+            if self._containers[container_id]['Config']['name'] == name:
+                return [{'Id': container_id}]
+        return []
+
     def get_image(self, name):
         if (name not in self._images or
            name not in self._image_data):
