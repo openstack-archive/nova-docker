@@ -4,4 +4,4 @@ source = novadocker
 omit = novadocker/tests/*,novadocker/openstack/*
 
 [report]
-ignore-errors = True
+ignore_errors = True
