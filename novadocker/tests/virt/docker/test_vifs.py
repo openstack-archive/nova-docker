@@ -342,12 +342,12 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
             ex.assert_has_calls(calls)
 
     @mock.patch.object(docker_driver.DockerDriver,
-                       '_find_container_by_name',
+                       '_find_container_by_uuid',
                        return_value={'id': 'fake_id'})
     @mock.patch.object(docker_driver.DockerDriver,
                        '_find_container_pid',
                        return_value=1234)
-    def test_attach_vifs(self, mock_find_by_name, mock_find_pid):
+    def test_attach_vifs(self, mock_find_by_uuid, mock_find_pid):
         calls = [
             mock.call('ln', '-sf', '/proc/1234/ns/net',
                       '/var/run/netns/fake_id', run_as_root=True),
@@ -380,16 +380,16 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
              'type': network_model.VIF_TYPE_BRIDGE}]
         with mock.patch('nova.utils.execute') as ex:
             driver = docker_driver.DockerDriver(object)
-            driver._attach_vifs({'name': 'fake_instance'}, network_info)
+            driver._attach_vifs({'uuid': 'fake_uuid'}, network_info)
             ex.assert_has_calls(calls)
 
     @mock.patch.object(docker_driver.DockerDriver,
-                       '_find_container_by_name',
+                       '_find_container_by_uuid',
                        return_value={'id': 'fake_id'})
     @mock.patch.object(docker_driver.DockerDriver,
                        '_find_container_pid',
                        return_value=1234)
-    def test_attach_vifs_two_interfaces(self, mock_find_by_name,
+    def test_attach_vifs_two_interfaces(self, mock_find_by_uuid,
                                         mock_find_pid):
         calls = [
             mock.call('ln', '-sf', '/proc/1234/ns/net',
@@ -448,5 +448,5 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
              'id': '920be2f4-2b98-411e-890a-69bcabb2a5a0'}]
         with mock.patch('nova.utils.execute') as ex:
             driver = docker_driver.DockerDriver(object)
-            driver._attach_vifs({'name': 'fake_instance'}, network_info)
+            driver._attach_vifs({'uuid': 'fake_uuid'}, network_info)
             ex.assert_has_calls(calls)

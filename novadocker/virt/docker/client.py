@@ -97,3 +97,13 @@ class DockerHTTPClient(client.Client):
 
     def get_container_logs(self, container_id):
         return self.attach(container_id, 1, 1, 0, 1)
+
+    def list_container_by_name(self, name):
+        args = [('all', 1), ('filters', json.dumps({'name': [name]}))]
+        resp = self.make_request(
+            'GET',
+            'containers/ps',
+            *args)
+        if resp.code == 404:
+            return []
+        return resp.to_json(default=[])
