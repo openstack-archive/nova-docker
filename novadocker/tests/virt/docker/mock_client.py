@@ -65,7 +65,7 @@ class MockClient(object):
     def _is_daemon_running(self):
         return True
 
-    def containers(self, all=True):
+    def containers(self, all=True, filters=None):
         containers = []
         for container_id in self._containers.iterkeys():
             containers.append({
@@ -76,6 +76,10 @@ class MockClient(object):
                 'Command': 'bash ',
                 'Id': container_id
             })
+            if filters and filters.get('name'):
+                if (self._containers[container_id]['Config']['name'] ==
+                   filters.get('name')):
+                    return [{'Id': container_id}]
         return containers
 
     def create_container(self, image_name, **args):
