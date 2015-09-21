@@ -101,12 +101,12 @@ class DockerOpenContrailVIFDriverTestCase(test.TestCase):
             ex.assert_has_calls(calls)
 
     @mock.patch.object(docker_driver.DockerDriver,
-                       '_find_container_by_name',
+                       '_find_container_by_uuid',
                        return_value={'id': 'my_vm'})
     @mock.patch.object(docker_driver.DockerDriver,
                        '_find_container_pid',
                        return_value=7890)
-    def test_attach_vrouter(self, mock_find_by_name, mock_find_pid):
+    def test_attach_vrouter(self, mock_find_by_uuid, mock_find_pid):
         vid = '920be1f5-2b98-411e-890a-69bcabb2a5a0'
         if_remote_name = 'ns%s' % vid[:8]
         if_local_name = 'veth%s' % vid[:8]
