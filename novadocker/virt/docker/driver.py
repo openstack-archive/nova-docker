@@ -259,7 +259,7 @@ class DockerDriver(driver.ComputeDriver):
             name = "nova-" + uuid
             containers = self.docker.containers(all=True,
                                                 filters={'name': name})
-            if containers:
+            if len(containers) >= 1:
                 # NOTE(dims): We expect only one item in the containers list
                 return self.docker.inspect_container(containers[0]['id'])
         except errors.APIError as e:

@@ -471,3 +471,8 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
                               'fake_files', 'fake_password')
         info = self.connection._find_container_by_uuid(instance_href['uuid'])
         self.assertEqual(instance_href['name'], info['Config'].get('Hostname'))
+
+    def test_find_container_by_uuid_no_found(self):
+        fake_uuid = 'fake_uuid'
+        info = self.connection._find_container_by_uuid(fake_uuid)
+        self.assertEqual({}, info)
