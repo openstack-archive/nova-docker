@@ -60,7 +60,7 @@ In glance-api.conf::
 Images may now be saved directly to Glance::
 
   $ docker pull busybox
-  $ docker save busybox | glance image-create --is-public=True --container-format=docker --disk-format=raw --name busybox
+  $ docker save busybox | docker save busybox | openstack image create busybox --public --container-format docker --disk-format raw
 
 **Note:** At present, only administrators should be allowed to manage images.
 With devstack you can make yourself administrator by sourcing openrc as::
