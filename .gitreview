@@ -1,5 +1,5 @@
 [gerrit]
 host=review.openstack.org
 port=29418
-project=stackforge/nova-docker.git
+project=openstack/nova-docker.git
 defaultbranch=stable/juno
