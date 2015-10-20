@@ -2,7 +2,7 @@ The contrib/devstack/ directory contains the files necessary to integrate Docker
 
 To install::
 
-    $ git clone https://git.openstack.org/stackforge/nova-docker /opt/stack/nova-docker
+    $ git clone https://git.openstack.org/openstack/nova-docker /opt/stack/nova-docker
     $ git clone https://git.openstack.org/openstack-dev/devstack /opt/stack/devstack
 
     # Note : only needed until we can make use of configure_nova_hypervisor_rootwrap
