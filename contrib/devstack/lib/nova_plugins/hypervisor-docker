@@ -25,7 +25,7 @@ set +o xtrace
 # --------
 
 # Set up default repos
-NOVA_DOCKER_REPO=${NOVA_DOCKER_REPO:-${GIT_BASE}/stackforge/nova-docker.git}
+NOVA_DOCKER_REPO=${NOVA_DOCKER_REPO:-${GIT_BASE}/openstack/nova-docker.git}
 NOVA_DOCKER_BRANCH=${NOVA_DOCKER_BRANCH:-master}
 
 # Set up default directories
