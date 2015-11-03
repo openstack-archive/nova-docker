@@ -152,7 +152,7 @@ class DockerHTTPClient(object):
             'Dns': None,
             'Image': None,
             'Volumes': {},
-            'VolumesFrom': '',
+            'VolumesFrom': [],
         }
         data.update(args)
         resp = self.make_request(
