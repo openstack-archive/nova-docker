@@ -438,6 +438,11 @@ class DockerGenericVIFDriver(object):
                 utils.execute('ip', 'netns', 'exec', container_id,
                               'ip', 'route', 'replace', 'default', 'via',
                               gateway, 'dev', if_remote_name, run_as_root=True)
+
+            # Disable TSO, for now no config option
+            utils.execute('ethtool', '--offload', if_remote_name, 'tso', 'off',
+                          run_as_root=True)
+ 
         except Exception:
             LOG.exception("Failed to attach vif")
 
