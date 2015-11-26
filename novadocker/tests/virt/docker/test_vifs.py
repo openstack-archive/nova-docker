@@ -366,7 +366,9 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
                       'ns920be2f4-2b', 'up', run_as_root=True),
             mock.call('ip', 'netns', 'exec', 'fake_id', 'ip', 'route',
                       'replace', 'default', 'via', '10.11.12.1', 'dev',
-                      'ns920be2f4-2b', run_as_root=True)
+                      'ns920be2f4-2b', run_as_root=True),
+            mock.call('ip', 'netns', 'exec', 'fake_id', 'ethtool', '--offload',
+                      'ns920be2f4-2b', 'tso', 'off', run_as_root=True)
         ]
         network_info = [
             {'network': {'bridge': 'br100',
@@ -411,6 +413,8 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
             mock.call('ip', 'netns', 'exec', 'fake_id', 'ip', 'route',
                       'replace', 'default', 'via', '10.11.12.1', 'dev',
                       'ns920be2f4-2b', run_as_root=True),
+            mock.call('ip', 'netns', 'exec', 'fake_id', 'ethtool', '--offload',
+                      'ns920be2f4-2b', 'tso', 'off', run_as_root=True),
             # interface 2
             mock.call('ip', 'link', 'set', 'ns920be2f4-2b', 'netns', 'fake_id',
                       run_as_root=True),
@@ -425,7 +429,9 @@ class DockerGenericVIFDriverTestCase(test.TestCase):
                       'ns920be2f4-2b', 'up', run_as_root=True),
             mock.call('ip', 'netns', 'exec', 'fake_id', 'ip', 'route',
                       'replace', 'default', 'via', '10.13.12.1', 'dev',
-                      'ns920be2f4-2b', run_as_root=True)
+                      'ns920be2f4-2b', run_as_root=True),
+            mock.call('ip', 'netns', 'exec', 'fake_id', 'ethtool', '--offload',
+                      'ns920be2f4-2b', 'tso', 'off', run_as_root=True)
         ]
         network_info = [
             {'network': {'bridge': 'br100',
