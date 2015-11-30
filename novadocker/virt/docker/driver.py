@@ -32,6 +32,7 @@ from oslo_serialization import jsonutils
 from oslo_utils import fileutils
 from oslo_utils import importutils
 from oslo_utils import units
+from oslo_utils import versionutils
 
 from nova.compute import arch
 from nova.compute import flavors
@@ -329,7 +330,7 @@ class DockerDriver(driver.ComputeDriver):
             'local_gb_used': disk['used'] / units.Gi,
             'disk_available_least': disk['available'] / units.Gi,
             'hypervisor_type': 'docker',
-            'hypervisor_version': utils.convert_version_to_int('1.0'),
+            'hypervisor_version': versionutils.convert_version_to_int('1.0'),
             'hypervisor_hostname': self._nodename,
             'cpu_info': '?',
             'numa_topology': None,
