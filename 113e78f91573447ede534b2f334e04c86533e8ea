@@ -1,0 +1,10 @@
+Verified+2: Jenkins
+Code-Review+2: Davanum Srinivas (dims) <davanum@gmail.com>
+Workflow+1: Davanum Srinivas (dims) <davanum@gmail.com>
+Code-Review+1: Dirk Mueller <dirk@dmllr.de>
+Code-Review+1: Liuqing Jing <lawrancejing@gmail.com>
+Submitted-by: Jenkins
+Submitted-at: Thu, 10 Dec 2015 10:08:33 +0000
+Reviewed-on: https://review.openstack.org/254487
+Project: openstack/nova-docker
+Branch: refs/heads/stable/liberty
