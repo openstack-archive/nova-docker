@@ -113,6 +113,32 @@ class DockerOpenContrailVIFDriverTestCase(test.TestCase):
         address = '10.1.2.1'
         gateway = '1.1.1.254'
         fixed_ip = '1.1.1.42/24'
+        fixed_ip_addr = '1.1.1.42'
+        vnid = 'virtual-network-1'
+        network_info = [network_model.VIF(id=vid, address=address,
+                                          network=network_model.Network(
+                                              id=vnid,
+                                              subnets=[network_model.Subnet(
+                                                  cidr='1.1.1.0/24',
+                                                  gateway=network_model.IP(
+                                                      address=gateway,
+                                                      type='gateway'),
+                                                  ips=[network_model.IP(
+                                                      address=fixed_ip_addr,
+                                                      type='fixed',
+                                                      version=4)]
+                                              )]
+                                          ))]
+        Instance = type(
+            'Instance', (dict, object),
+            dict(__getattr__=lambda self, attr: self[attr]))
+
+        instance = Instance(
+            name='fake_instance', display_name='fake_vm',
+            hostname='fake_vm', host='linux',
+            project_id='e2d2ddc6-4e0f-4cd4-b846-3bad53093ec6',
+            uuid='d4b817fb-7885-4649-bad7-89302dde12e1')
+
         calls = [
             mock.call('mkdir', '-p', '/var/run/netns', run_as_root=True),
             mock.call('ln', '-sf', '/proc/7890/ns/net',
@@ -120,6 +146,17 @@ class DockerOpenContrailVIFDriverTestCase(test.TestCase):
             mock.call('ip', 'netns', 'exec', 'my_vm', 'ip', 'link',
                       'set', 'lo', 'up', run_as_root=True),
             mock.call('ip', 'link', 'set', if_remote_name, 'netns', 'my_vm',
+                      run_as_root=True),
+            mock.call('vrouter-port-control',
+                      '--oper=add --uuid=%s --instance_uuid=%s
+                       --vn_uuid=%s --vm_project_uuid=%s
+                       --ip_address=%s --ipv6_address=None
+                       --vm_name=%s --mac=%s --tap_name=%s
+                       --port_type=NovaVMPort
+                       --tx_vlan_id=-1 --rx_vlan_id=-1' % (
+                           vid, instance['uuid'], vnid,
+                           instance['project_id'], fixed_ip_addr,
+                           instance['name'], address, if_local_name),
                       run_as_root=True),
             mock.call('ip', 'link', 'set', if_local_name, 'up',
                       run_as_root=True),
@@ -134,24 +171,6 @@ class DockerOpenContrailVIFDriverTestCase(test.TestCase):
             mock.call('ip', 'netns', 'exec', 'my_vm', 'ip', 'link',
                       'set', if_remote_name, 'up', run_as_root=True)
         ]
-        network_info = [network_model.VIF(id=vid, address=address,
-                                          network=network_model.Network(
-                                              id='virtual-network-1',
-                                              subnets=[network_model.Subnet(
-                                                  cidr='1.1.1.0/24',
-                                                  gateway=network_model.IP(
-                                                      address=gateway,
-                                                      type='gateway'),
-                                                  ips=[network_model.IP(
-                                                      address='1.1.1.42',
-                                                      type='fixed',
-                                                      version=4)]
-                                              )]
-                                          ))]
-        instance = dict(name='fake_instance', display_name='fake_vm',
-                        hostname='fake_vm', host='linux',
-                        project_id='e2d2ddc6-4e0f-4cd4-b846-3bad53093ec6',
-                        uuid='d4b817fb-7885-4649-bad7-89302dde12e1')
         with mock.patch('nova.utils.execute') as ex:
             driver = docker_driver.DockerDriver(object)
             driver._attach_vifs(instance, network_info)
