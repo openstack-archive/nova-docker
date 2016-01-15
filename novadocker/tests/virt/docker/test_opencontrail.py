@@ -148,10 +148,13 @@ class DockerOpenContrailVIFDriverTestCase(test.TestCase):
                                                       version=4)]
                                               )]
                                           ))]
-        instance = dict(name='fake_instance', display_name='fake_vm',
-                        hostname='fake_vm', host='linux',
-                        project_id='e2d2ddc6-4e0f-4cd4-b846-3bad53093ec6',
-                        uuid='d4b817fb-7885-4649-bad7-89302dde12e1')
+        instance =  type(
+            'Instance', (object,), 
+            dict(
+                name='fake_instance', display_name='fake_vm',
+                hostname='fake_vm', host='linux',
+                project_id='e2d2ddc6-4e0f-4cd4-b846-3bad53093ec6',
+                uuid='d4b817fb-7885-4649-bad7-89302dde12e1'))
         with mock.patch('nova.utils.execute') as ex:
             driver = docker_driver.DockerDriver(object)
             driver._attach_vifs(instance, network_info)
