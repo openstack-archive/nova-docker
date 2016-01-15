@@ -13,39 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 import mock
-import sys
-
-
-class MockContrailVRouterApi(mock.MagicMock):
-    def __init__(self, *a, **kw):
-        super(MockContrailVRouterApi, self).__init__()
-        self._args = a
-        self._dict = kw
-        self._vifs = {}
-
-    def add_port(self, vm_uuid_str, vif_uuid_str, interface_name,
-                 mac_address, **kwargs):
-        if vm_uuid_str not in self._vifs:
-            self._vifs[vif_uuid_str] = dict(vm=vm_uuid_str,
-                                            intf=interface_name,
-                                            mac=mac_address)
-            self._vifs[vm_uuid_str].update(kwargs)
-            return self._vifs[vif_uuid_str]
-
-    def delete_port(self, vif_uuid_str):
-        if vif_uuid_str in self._vifs:
-            del self._vifs[vif_uuid_str]
-
-
-mock_pkg = mock.MagicMock(name='mock_contrail_vrouter_api')
-mock_mod = mock.MagicMock(name='mock_vrouter_api')
-mock_cls = mock.MagicMock(name='MockOpenContrailVIFDriver',
-                          side_effect=MockContrailVRouterApi)
-mock_mod.OpenContrailVIFDriver = mock_cls
-mock_pkg.vrouter_api = mock_mod
-
-sys.modules['contrail_vrouter_api'] = mock_pkg
-sys.modules['contrail_vrouter_api.vrouter_api'] = mock_mod
 
 from nova.network import model as network_model
 from nova import test
@@ -113,6 +80,32 @@ class DockerOpenContrailVIFDriverTestCase(test.TestCase):
         address = '10.1.2.1'
         gateway = '1.1.1.254'
         fixed_ip = '1.1.1.42/24'
+        fixed_ip_addr = '1.1.1.42'
+        vnid = 'virtual-network-1'
+        network_info = [network_model.VIF(id=vid, address=address,
+                                          network=network_model.Network(
+                                              id=vnid,
+                                              subnets=[network_model.Subnet(
+                                                  cidr='1.1.1.0/24',
+                                                  gateway=network_model.IP(
+                                                      address=gateway,
+                                                      type='gateway'),
+                                                  ips=[network_model.IP(
+                                                      address=fixed_ip_addr,
+                                                      type='fixed',
+                                                      version=4)]
+                                              )]
+                                          ))]
+        Instance = type(
+            'Instance', (dict, object),
+            dict(__getattr__=lambda self, attr: self[attr]))
+
+        instance = Instance(
+            name='fake_instance', display_name='fake_vm',
+            hostname='fake_vm', host='linux',
+            project_id='e2d2ddc6-4e0f-4cd4-b846-3bad53093ec6',
+            uuid='d4b817fb-7885-4649-bad7-89302dde12e1')
+
         calls = [
             mock.call('mkdir', '-p', '/var/run/netns', run_as_root=True),
             mock.call('ln', '-sf', '/proc/7890/ns/net',
@@ -120,6 +113,16 @@ class DockerOpenContrailVIFDriverTestCase(test.TestCase):
             mock.call('ip', 'netns', 'exec', 'my_vm', 'ip', 'link',
                       'set', 'lo', 'up', run_as_root=True),
             mock.call('ip', 'link', 'set', if_remote_name, 'netns', 'my_vm',
+                      run_as_root=True),
+            mock.call('vrouter-port-control', '--oper=add --uuid=%s' % vid,
+                      '--instance_uuid=%s' % instance['uuid'],
+                      '--vn_uuid=%s' % vnid,
+                      '--vm_project_uuid=%s' % instance['project_id'],
+                      '--ip_address=%s' % fixed_ip_addr, '--ipv6_address=None',
+                      '--vm_name=%s' % instance['display_name'],
+                      '--mac=%s' % address, '--tap_name=%s' % if_local_name,
+                      '--port_type=NovaVMPort',
+                      '--tx_vlan_id=-1 --rx_vlan_id=-1',
                       run_as_root=True),
             mock.call('ip', 'link', 'set', if_local_name, 'up',
                       run_as_root=True),
@@ -134,24 +137,6 @@ class DockerOpenContrailVIFDriverTestCase(test.TestCase):
             mock.call('ip', 'netns', 'exec', 'my_vm', 'ip', 'link',
                       'set', if_remote_name, 'up', run_as_root=True)
         ]
-        network_info = [network_model.VIF(id=vid, address=address,
-                                          network=network_model.Network(
-                                              id='virtual-network-1',
-                                              subnets=[network_model.Subnet(
-                                                  cidr='1.1.1.0/24',
-                                                  gateway=network_model.IP(
-                                                      address=gateway,
-                                                      type='gateway'),
-                                                  ips=[network_model.IP(
-                                                      address='1.1.1.42',
-                                                      type='fixed',
-                                                      version=4)]
-                                              )]
-                                          ))]
-        instance = dict(name='fake_instance', display_name='fake_vm',
-                        hostname='fake_vm', host='linux',
-                        project_id='e2d2ddc6-4e0f-4cd4-b846-3bad53093ec6',
-                        uuid='d4b817fb-7885-4649-bad7-89302dde12e1')
         with mock.patch('nova.utils.execute') as ex:
             driver = docker_driver.DockerDriver(object)
             driver._attach_vifs(instance, network_info)
