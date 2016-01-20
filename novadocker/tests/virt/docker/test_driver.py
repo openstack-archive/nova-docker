@@ -17,10 +17,13 @@ import contextlib
 import os
 import socket
 
+import eventlet
 import mock
+from oslo_config import cfg
 from oslo_config import fixture as config_fixture
 from oslo_utils import units
 
+from nova.compute import manager
 from nova.compute import task_states
 from nova import context
 from nova import exception
@@ -159,6 +162,110 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
                                         ' ["x86_64", "docker", "exe"]]')
             }
             self.assertEqual(expected_stats, stats)
+
+    def _test_start_container_with_network_events(self, neutron_failure=None):
+        generated_events = []
+
+        def wait_timeout():
+            event = mock.MagicMock()
+            if neutron_failure == 'timeout':
+                raise eventlet.timeout.Timeout()
+            elif neutron_failure == 'error':
+                event.status = 'failed'
+            else:
+                event.status = 'completed'
+            return event
+
+        def fake_prepare(instance, event_name):
+            m = mock.MagicMock()
+            m.instance = instance
+            m.event_name = event_name
+            m.wait.side_effect = wait_timeout
+            generated_events.append(m)
+            return m
+
+        virtapi = manager.ComputeVirtAPI(mock.MagicMock())
+        prepare = virtapi._compute.instance_events.prepare_for_instance_event
+        prepare.side_effect = fake_prepare
+        drvr = novadocker.virt.docker.driver.DockerDriver(virtapi)
+
+        instance_href = utils.get_test_instance()
+        container_id = self.connection._find_container_by_uuid(
+            instance_href['uuid']).get('id')
+
+        vifs = [{'id': 'vif1', 'active': False},
+                {'id': 'vif2', 'active': False}]
+
+        @mock.patch.object(drvr, '_extract_dns_entries')
+        @mock.patch.object(drvr, 'plug_vifs')
+        @mock.patch.object(drvr, '_attach_vifs')
+        @mock.patch.object(self.mock_client, 'start')
+        @mock.patch.object(self.mock_client, 'kill')
+        @mock.patch.object(self.mock_client, 'remove_container')
+        def test_start(remove_container, kill, start, attach_vif, plug_vifs,
+                       extract_dns_entries):
+            drvr._start_container(container_id, instance_href,
+                                  vifs)
+            plug_vifs.assert_called_with(instance_href, vifs)
+            attach_vif.assert_called_with(instance_href, vifs)
+
+            if neutron_failure and cfg.CONF.vif_plugging_is_fatal:
+                kill.assert_called_once_with(container_id)
+                remove_container.assert_called_once_with(container_id,
+                                                         Force=True)
+        test_start()
+
+        if nova.utils.is_neutron() and cfg.CONF.vif_plugging_timeout:
+            prepare.assert_has_calls([
+                mock.call(instance_href, 'network-vif-plugged-vif1'),
+                mock.call(instance_href, 'network-vif-plugged-vif2')])
+            for event in generated_events:
+                if neutron_failure and generated_events.index(event) != 0:
+                    self.assertEqual(0, event.call_count)
+        else:
+            self.assertEqual(0, prepare.call_count)
+
+    @mock.patch('nova.utils.is_neutron', return_value=True)
+    def test_start_container_with_network_events(self, is_neutron):
+        self._test_start_container_with_network_events()
+
+    @mock.patch('nova.utils.is_neutron', return_value=True)
+    def test_start_container_with_network_events_nowait(self, is_neutron):
+        self.flags(vif_plugging_timeout=0)
+        self._test_start_container_with_network_events()
+
+    @mock.patch('nova.utils.is_neutron', return_value=True)
+    def test_start_container_with_network_events_failed_timeout_non_fatal(
+            self, is_neutron):
+        self.flags(vif_plugging_is_fatal=False)
+        self._test_start_container_with_network_events(
+            neutron_failure='timeout')
+
+    @mock.patch('nova.utils.is_neutron', return_value=True)
+    def test_start_container_with_network_events_failed_timeout_fatal(
+            self, is_neutron):
+        self.assertRaises(exception.InstanceDeployFailure,
+                          self._test_start_container_with_network_events,
+                          neutron_failure='timeout')
+
+    @mock.patch('nova.utils.is_neutron', return_value=True)
+    def test_start_container_with_network_events_failed_error_non_fatal(
+            self, is_neutron):
+        self.flags(vif_plugging_is_fatal=False)
+        self._test_start_container_with_network_events(
+            neutron_failure='error')
+
+    @mock.patch('nova.utils.is_neutron', return_value=True)
+    def test_start_container_with_network_events_failed_error_fatal(
+            self, is_neutron):
+        self.assertRaises(exception.InstanceDeployFailure,
+                          self._test_start_container_with_network_events,
+                          neutron_failure='error')
+
+    @mock.patch('nova.utils.is_neutron', return_value=False)
+    def test_start_container_with_network_events_non_neutron(self,
+                                                             is_neutron):
+        self._test_start_container_with_network_events()
 
     def test_create_container(self, image_info=None, instance_href=None,
                               network_info=None):
