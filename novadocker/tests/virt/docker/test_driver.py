@@ -85,7 +85,7 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
         network_info = utils.get_test_network_info()
         network_info[0]['network']['subnets'][0]['meta']['dhcp_server'] = \
             '1.1.1.1'
-        image_info = utils.get_test_image_info(None, instance_ref)
+        image_info = utils.get_test_image_object(None, instance_ref)
         image_info['disk_format'] = 'raw'
         image_info['container_format'] = 'docker'
         self.connection.spawn(self.ctxt, instance_ref, image_info,
@@ -165,7 +165,7 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
         if instance_href is None:
             instance_href = utils.get_test_instance()
         if image_info is None:
-            image_info = utils.get_test_image_info(None, instance_href)
+            image_info = utils.get_test_image_object(None, instance_href)
             image_info['disk_format'] = 'raw'
             image_info['container_format'] = 'docker'
         self.connection.spawn(self.context, instance_href, image_info,
@@ -181,7 +181,7 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
         if instance_href is None:
             instance_href = utils.get_test_instance()
         if image_info is None:
-            image_info = utils.get_test_image_info(None, instance_href)
+            image_info = utils.get_test_image_object(None, instance_href)
             image_info['disk_format'] = 'raw'
             image_info['container_format'] = 'docker'
         with mock.patch.object(self.mock_client, 'create_container') as mc:
@@ -196,7 +196,7 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
         self.fixture.config(inject_key=True, group='docker')
         instance_href = utils.get_test_instance()
         instance_href.key_data = 'my_key'
-        image_info = utils.get_test_image_info(None, instance_href)
+        image_info = utils.get_test_image_object(None, instance_href)
         image_info['disk_format'] = 'raw'
         image_info['container_format'] = 'docker'
         with mock.patch.object(self.mock_client, 'create_container'):
@@ -217,7 +217,7 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
         if instance_href is None:
             instance_href = utils.get_test_instance()
         if image_info is None:
-            image_info = utils.get_test_image_info(None, instance_href)
+            image_info = utils.get_test_image_object(None, instance_href)
             image_info['disk_format'] = 'raw'
             image_info['container_format'] = 'docker'
             image_info['properties'] = {'os_command_line': 'uname'}
@@ -236,7 +236,7 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
         })
         instance_href = utils.get_test_instance(flavor=flavor)
         if image_info is None:
-            image_info = utils.get_test_image_info(None, instance_href)
+            image_info = utils.get_test_image_object(None, instance_href)
             image_info['disk_format'] = 'raw'
             image_info['container_format'] = 'docker'
         self.connection.spawn(self.context, instance_href, image_info,
@@ -261,7 +261,7 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
 
     def test_create_container_wrong_image(self):
         instance_href = utils.get_test_instance()
-        image_info = utils.get_test_image_info(None, instance_href)
+        image_info = utils.get_test_image_object(None, instance_href)
         image_info['disk_format'] = 'raw'
         image_info['container_format'] = 'invalid_format'
         self.assertRaises(exception.InstanceDeployFailure,
@@ -304,7 +304,7 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
 
     def test_soft_delete_restore_container(self):
         instance_href = utils.get_test_instance()
-        image_info = utils.get_test_image_info(None, instance_href)
+        image_info = utils.get_test_image_object(None, instance_href)
         image_info['disk_format'] = 'raw'
         image_info['container_format'] = 'docker'
 
@@ -333,7 +333,7 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
 
     def test_list_instances(self):
         instance_href = utils.get_test_instance()
-        image_info = utils.get_test_image_info(None, instance_href)
+        image_info = utils.get_test_image_object(None, instance_href)
         image_info['disk_format'] = 'raw'
         image_info['container_format'] = 'docker'
         self.connection.spawn(self.context, instance_href, image_info,
@@ -350,7 +350,7 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
     def test_list_instances_no_inspect_race(self):
         """Assures containers that cannot be inspected are not listed."""
         instance_href = utils.get_test_instance()
-        image_info = utils.get_test_image_info(None, instance_href)
+        image_info = utils.get_test_image_object(None, instance_href)
         image_info['disk_format'] = 'raw'
         image_info['container_format'] = 'docker'
         self.connection.spawn(self.context, instance_href, image_info,
@@ -423,7 +423,7 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
 
     def test_get_image_name(self):
         instance_ref = utils.get_test_instance()
-        image_info = utils.get_test_image_info(None, instance_ref)
+        image_info = utils.get_test_image_object(None, instance_ref)
         image_info['container_format'] = 'docker'
         image_info['name'] = 'MiXeDcAsE-image'
         repo = self.connection._get_image_name(self.context,
@@ -449,7 +449,7 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
     def test_pull_missing_image_with_shared_dir(self, mock_os):
         self.fixture.config(shared_directory='/fake_dir', group='docker')
         instance_ref = utils.get_test_instance()
-        image_info = utils.get_test_image_info(None, instance_ref)
+        image_info = utils.get_test_image_object(None, instance_ref)
         image_info['name'] = 'fake_name'
         image_info['id'] = 'fake_id'
         with mock.patch.object(self.mock_client, 'load_repository_file') as f:
@@ -464,7 +464,7 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
 
     def test_find_container_by_uuid(self):
         instance_href = utils.get_test_instance()
-        image_info = utils.get_test_image_info(None, instance_href)
+        image_info = utils.get_test_image_object(None, instance_href)
         image_info['disk_format'] = 'raw'
         image_info['container_format'] = 'docker'
         self.connection.spawn(self.context, instance_href, image_info,
