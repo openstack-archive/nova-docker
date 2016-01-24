@@ -368,27 +368,27 @@ class DockerDriver(driver.ComputeDriver):
                 'instance_type_memory_mb', 0)) * units.Mi
 
     def _get_image_name(self, context, instance, image):
-        fmt = image['container_format']
+        fmt = image.container_format
         if fmt != 'docker':
             msg = _('Image container format not supported ({0})')
             raise exception.InstanceDeployFailure(msg.format(fmt),
                                                   instance_id=instance['name'])
-        return image['name']
+        return image.name
 
     def _pull_missing_image(self, context, image_meta, instance):
         msg = 'Image name "%s" does not exist, fetching it...'
-        LOG.debug(msg, image_meta['name'])
+        LOG.debug(msg, image_meta.name)
 
         shared_directory = CONF.docker.shared_directory
         if (shared_directory and
                 os.path.exists(os.path.join(shared_directory,
-                                            image_meta['id']))):
+                                            image_meta.id))):
             try:
                 self.docker.load_repository_file(
-                    self._encode_utf8(image_meta['name']),
-                    os.path.join(shared_directory, image_meta['id']))
+                    self._encode_utf8(image_meta.name),
+                    os.path.join(shared_directory, image_meta.id))
                 return self.docker.inspect_image(
-                    self._encode_utf8(image_meta['name']))
+                    self._encode_utf8(image_meta.name))
             except Exception as e:
                 # If failed to load image from shared_directory, continue
                 # to download the image from glance then load.
@@ -404,10 +404,10 @@ class DockerDriver(driver.ComputeDriver):
             try:
                 out_path = os.path.join(tmpdir, uuid.uuid4().hex)
 
-                images.fetch(context, image_meta['id'], out_path,
+                images.fetch(context, image_meta.id, out_path,
                              instance['user_id'], instance['project_id'])
                 self.docker.load_repository_file(
-                    self._encode_utf8(image_meta['name']),
+                    self._encode_utf8(image_meta.name),
                     out_path
                 )
             except Exception as e:
@@ -415,9 +415,9 @@ class DockerDriver(driver.ComputeDriver):
                             e, instance=instance, exc_info=True)
                 msg = _('Cannot load repository file: {0}')
                 raise exception.NovaException(msg.format(e),
-                                              instance_id=image_meta['name'])
+                                              instance_id=image_meta.name)
 
-        return self.docker.inspect_image(self._encode_utf8(image_meta['name']))
+        return self.docker.inspect_image(self._encode_utf8(image_meta.name))
 
     def _extract_dns_entries(self, network_info):
         dns = []
@@ -479,9 +479,9 @@ class DockerDriver(driver.ComputeDriver):
         if not image:
             image = self._pull_missing_image(context, image_meta, instance)
         # Glance command-line overrides any set in the Docker image
-        if (image_meta and
-                image_meta.get('properties', {}).get('os_command_line')):
-            args['command'] = image_meta['properties'].get('os_command_line')
+        if (image_meta != None and
+                    image_meta.properties.get("os_command_line") != None):
+            args['command'] = image_meta.properties.get("os_command_line")
 
         if 'metadata' in instance:
             args['environment'] = nova_utils.instance_meta(instance)
