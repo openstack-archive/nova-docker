@@ -1,0 +1,4 @@
+export VIRT_DRIVER=docker
+export DEFAULT_IMAGE_NAME=cirros
+export NON_STANDARD_REQS=1
+export IMAGE_URLS=" "
