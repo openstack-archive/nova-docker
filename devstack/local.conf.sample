@@ -1,0 +1,4 @@
+[[local|localrc]]
+enable_plugin nova-docker https://git.openstack.org/openstack/nova-docker
+enable_service docker-engine
+
