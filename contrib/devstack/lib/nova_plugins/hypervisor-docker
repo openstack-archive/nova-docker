@@ -18,7 +18,7 @@
 
 # Save trace setting
 MY_XTRACE=$(set +o | grep xtrace)
-set +o xtrace
+set -o xtrace
 
 
 # Defaults
@@ -32,13 +32,14 @@ NOVA_DOCKER_BRANCH=${NOVA_DOCKER_BRANCH:-master}
 DOCKER_DIR=$DEST/nova-docker
 
 
-DOCKER_UNIX_SOCKET=/var/run/docker.sock
+DOCKER_HOST_URL=${DOCKER_HOST_URL:unix:///var/run/docker.sock}
 DOCKER_PID_FILE=/var/run/docker.pid
 DOCKER_REGISTRY_PORT=${DOCKER_REGISTRY_PORT:-5042}
 
 DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME:-${DEFAULT_IMAGE_NAME}}
 DOCKER_REGISTRY_IMAGE=${DOCKER_REGISTRY_IMAGE:-registry}
 DOCKER_REGISTRY_IMAGE_NAME=registry
+DOWNLOAD_DEFAULT_IMAGES=True
 
 DOCKER_APT_REPO=${DOCKER_APT_REPO:-https://apt.dockerproject.org/repo}
 
@@ -61,6 +62,7 @@ function cleanup_nova_hypervisor {
 # configure_nova_hypervisor - Set config files, create data dirs, etc
 function configure_nova_hypervisor {
     iniset $NOVA_CONF DEFAULT compute_driver novadocker.virt.docker.driver.DockerDriver
+    iniset $NOVA_CONF docker host_url $DOCKER_HOST_URL
     iniset $GLANCE_API_CONF DEFAULT container_formats ami,ari,aki,bare,ovf,docker
 }
 
