@@ -32,7 +32,7 @@ NOVA_DOCKER_BRANCH=${NOVA_DOCKER_BRANCH:-master}
 DOCKER_DIR=$DEST/nova-docker
 
 
-DOCKER_UNIX_SOCKET=/var/run/docker.sock
+DOCKER_HOST_URL=${DOCKER_HOST_URL:unix:///var/run/docker.sock}
 DOCKER_PID_FILE=/var/run/docker.pid
 DOCKER_REGISTRY_PORT=${DOCKER_REGISTRY_PORT:-5042}
 
@@ -61,6 +61,7 @@ function cleanup_nova_hypervisor {
 # configure_nova_hypervisor - Set config files, create data dirs, etc
 function configure_nova_hypervisor {
     iniset $NOVA_CONF DEFAULT compute_driver novadocker.virt.docker.driver.DockerDriver
+    iniset $NOVA_CONF docker host_url $DOCKER_HOST_URL
     iniset $GLANCE_API_CONF DEFAULT container_formats ami,ari,aki,bare,ovf,docker
 }
 
