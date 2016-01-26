@@ -28,7 +28,6 @@ from docker import errors
 from docker import utils as docker_utils
 from oslo_config import cfg
 from oslo_log import log
-from oslo_serialization import jsonutils
 from oslo_utils import fileutils
 from oslo_utils import importutils
 from oslo_utils import units
@@ -334,10 +333,10 @@ class DockerDriver(driver.ComputeDriver):
             'hypervisor_hostname': self._nodename,
             'cpu_info': '?',
             'numa_topology': None,
-            'supported_instances': jsonutils.dumps([
+            'supported_instances': [
                 (arch.I686, hv_type.DOCKER, vm_mode.EXE),
                 (arch.X86_64, hv_type.DOCKER, vm_mode.EXE)
-            ])
+            ]
         }
         return stats
 
