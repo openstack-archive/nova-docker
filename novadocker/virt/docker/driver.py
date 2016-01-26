@@ -28,7 +28,6 @@ from docker import errors
 from docker import utils as docker_utils
 from oslo_config import cfg
 from oslo_log import log
-from oslo_serialization import jsonutils
 from oslo_utils import fileutils
 from oslo_utils import importutils
 from oslo_utils import units
@@ -334,10 +333,10 @@ class DockerDriver(driver.ComputeDriver):
             'hypervisor_hostname': self._nodename,
             'cpu_info': '?',
             'numa_topology': None,
-            'supported_instances': jsonutils.dumps([
+            'supported_instances': [
                 (arch.I686, hv_type.DOCKER, vm_mode.EXE),
                 (arch.X86_64, hv_type.DOCKER, vm_mode.EXE)
-            ])
+            ]
         }
         return stats
 
@@ -383,7 +382,10 @@ class DockerDriver(driver.ComputeDriver):
         if (shared_directory and
                 os.path.exists(os.path.join(shared_directory,
                                             image_meta.id))):
+            LOG.debug('Found %s in shared_directory', image_meta.id)
             try:
+                LOG.debug('Loading repository file into docker %s',
+                          self._encode_utf8(image_meta.name))
                 self.docker.load_repository_file(
                     self._encode_utf8(image_meta.name),
                     os.path.join(shared_directory, image_meta.id))
@@ -404,20 +406,24 @@ class DockerDriver(driver.ComputeDriver):
             try:
                 out_path = os.path.join(tmpdir, uuid.uuid4().hex)
 
+                LOG.debug('Fetching image with id %s from glance',
+                          image_meta.id)
                 images.fetch(context, image_meta.id, out_path,
                              instance['user_id'], instance['project_id'])
+                LOG.debug('Loading repository file into docker %s',
+                          self._encode_utf8(image_meta.name))
                 self.docker.load_repository_file(
                     self._encode_utf8(image_meta.name),
                     out_path
                 )
+                return self.docker.inspect_image(
+                        self._encode_utf8(image_meta.name))
             except Exception as e:
                 LOG.warning(_('Cannot load repository file: %s'),
                             e, instance=instance, exc_info=True)
                 msg = _('Cannot load repository file: {0}')
                 raise exception.NovaException(msg.format(e),
                                               instance_id=image_meta.name)
-
-        return self.docker.inspect_image(self._encode_utf8(image_meta.name))
 
     def _extract_dns_entries(self, network_info):
         dns = []
