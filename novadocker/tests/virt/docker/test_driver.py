@@ -155,8 +155,8 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
                 'hypervisor_hostname': 'test',
                 'cpu_info': '?',
                 'numa_topology': None,
-                'supported_instances': ('[["i686", "docker", "exe"],'
-                                        ' ["x86_64", "docker", "exe"]]')
+                'supported_instances': [["i686", "docker", "exe"],
+                                        ["x86_64", "docker", "exe"]]
             }
             self.assertEqual(expected_stats, stats)
 
