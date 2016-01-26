@@ -334,10 +334,10 @@ class DockerDriver(driver.ComputeDriver):
             'hypervisor_hostname': self._nodename,
             'cpu_info': '?',
             'numa_topology': None,
-            'supported_instances': jsonutils.dumps([
+            'supported_instances': [
                 (arch.I686, hv_type.DOCKER, vm_mode.EXE),
                 (arch.X86_64, hv_type.DOCKER, vm_mode.EXE)
-            ])
+            ]
         }
         return stats
 
