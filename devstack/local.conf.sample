@@ -1,0 +1,2 @@
+[[local|localrc]]
+enable_plugin docker-service https://github.com/dims/devstack-plugin-docker
