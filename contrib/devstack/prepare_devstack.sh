@@ -9,9 +9,6 @@ INSTALLDIR=${INSTALLDIR:-/opt/stack}
 cp $NOVADOCKERDIR/contrib/devstack/lib/nova_plugins/hypervisor-docker $INSTALLDIR/devstack/lib/nova_plugins/
 
 cat - <<-EOF >> $INSTALLDIR/devstack/localrc
-RECLONE=True
-git_clone https://github.com/dims/devstack-plugin-docker /opt/stack/docker-service master
-RECLONE=False
-enable_plugin docker-service https://github.com/dims/devstack-plugin-docker
+GITDIR['nova-docker']=$DEST/nova-docker
+enable_plugin nova-docker https://git.openstack.org/openstack/nova-docker
 EOF
-
