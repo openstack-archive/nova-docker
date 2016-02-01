@@ -26,6 +26,7 @@ import uuid
 
 from docker import errors
 from docker import utils as docker_utils
+import eventlet
 from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import fileutils
@@ -48,7 +49,7 @@ from nova.virt import driver
 from nova.virt import firewall
 from nova.virt import hardware
 from nova.virt import images
-from novadocker.i18n import _, _LI, _LE
+from novadocker.i18n import _, _LI, _LE, _LW
 from novadocker.virt.docker import client as docker_client
 from novadocker.virt.docker import hostinfo
 from novadocker.virt.docker import network
@@ -446,6 +447,23 @@ class DockerDriver(driver.ComputeDriver):
             binds = {mount_origin: {'bind': '/root/.ssh', 'ro': True}}
         return binds
 
+    def _neutron_failed_callback(self, event_name, instance):
+        LOG.error(_LE('Neutron Reported failure on event '
+                      '%(event)s for instance %(uuid)s'),
+                  {'event': event_name, 'uuid': instance.uuid},
+                  instance=instance)
+        if CONF.vif_plugging_is_fatal:
+            raise exception.VirtualInterfaceCreateException()
+
+    def _get_neutron_events(self, network_info):
+        # NOTE(danms): We need to collect any VIFs that are currently
+        # down that we expect a down->up event for. Anything that is
+        # already up will not undergo that transition, and for
+        # anything that might be stale (cache-wise) assume it's
+        # already up so we don't block on it.
+        return [('network-vif-plugged', vif['id'])
+                for vif in network_info if vif.get('active', True) is False]
+
     def _start_container(self, container_id, instance, network_info=None):
         binds = self._get_key_binds(container_id, instance)
         dns = self._extract_dns_entries(network_info)
@@ -454,10 +472,28 @@ class DockerDriver(driver.ComputeDriver):
 
         if not network_info:
             return
+        timeout = CONF.vif_plugging_timeout
+        if (utils.is_neutron() and timeout):
+            events = self._get_neutron_events(network_info)
+        else:
+            events = []
+
         try:
-            self.plug_vifs(instance, network_info)
-            self._attach_vifs(instance, network_info)
-        except Exception as e:
+            with self.virtapi.wait_for_instance_event(
+                    instance, events, deadline=timeout,
+                    error_callback=self._neutron_failed_callback):
+                self.plug_vifs(instance, network_info)
+                self._attach_vifs(instance, network_info)
+        except eventlet.timeout.Timeout:
+            LOG.warn(_LW('Timeout waiting for vif plugging callback for '
+                         'instance %(uuid)s'), {'uuid': instance['name']})
+            if CONF.vif_plugging_is_fatal:
+                self.docker.kill(container_id)
+                self.docker.remove_container(container_id, force=True)
+                raise exception.InstanceDeployFailure(
+                    'Timeout waiting for vif plugging',
+                    instance_id=instance['name'])
+        except (Exception) as e:
             LOG.warning(_('Cannot setup network: %s'),
                         e, instance=instance, exc_info=True)
             msg = _('Cannot setup network: {0}')
