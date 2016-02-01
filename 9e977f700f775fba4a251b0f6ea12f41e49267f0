@@ -1,0 +1,10 @@
+Code-Review+1: Michal Jura <mjura@suse.com>
+Code-Review+1: zhangguoqing <zhang.guoqing@99cloud.net>
+Code-Review+2: Davanum Srinivas (dims) <davanum@gmail.com>
+Workflow+1: Davanum Srinivas (dims) <davanum@gmail.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Mon, 01 Feb 2016 12:02:10 +0000
+Reviewed-on: https://review.openstack.org/270769
+Project: openstack/nova-docker
+Branch: refs/heads/master
