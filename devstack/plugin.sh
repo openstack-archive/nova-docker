@@ -24,7 +24,7 @@ elif [[ "$1" == "stack" && "$2" == "post-config" ]]; then
     echo_summary "Running stack post-config"
     wget http://get.docker.com -O install_docker.sh
     sudo chmod 777 install_docker.sh
-    sudo sh install_docker.sh
+    sudo bash -x install_docker.sh
     sudo rm install_docker.sh
 
     if is_fedora; then
