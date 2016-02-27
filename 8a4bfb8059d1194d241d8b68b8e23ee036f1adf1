@@ -1,0 +1,8 @@
+Code-Review+2: Davanum Srinivas (dims) <davanum@gmail.com>
+Workflow+1: Davanum Srinivas (dims) <davanum@gmail.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Sat, 27 Feb 2016 03:16:46 +0000
+Reviewed-on: https://review.openstack.org/285496
+Project: openstack/nova-docker
+Branch: refs/heads/master
