@@ -39,7 +39,7 @@ from novadocker.virt.docker import hostinfo
 from novadocker.virt.docker import network
 
 
-class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
+class DockerDriverTestCase(test_virt_drivers.AbstractDriverTestCase,
                            test.TestCase):
 
     driver_module = 'novadocker.virt.docker.DockerDriver'
