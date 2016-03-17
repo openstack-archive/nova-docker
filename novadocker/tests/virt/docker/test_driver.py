@@ -77,6 +77,10 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
         self.fixture = self.useFixture(
             config_fixture.Config(novadocker.virt.docker.driver.CONF))
 
+    @test_virt_drivers.catch_notimplementederror
+    def test_live_migration(self):
+        super(DockerDriverTestCase, self).test_live_migration()
+
     def test_driver_capabilities(self):
         self.assertFalse(self.connection.capabilities['has_imagecache'])
         self.assertFalse(self.connection.capabilities['supports_recreate'])
