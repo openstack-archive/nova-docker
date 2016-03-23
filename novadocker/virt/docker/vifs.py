@@ -263,8 +263,9 @@ class DockerGenericVIFDriver(object):
         bridge = vif['network']['bridge']
         gateway = network.find_gateway(instance, vif['network'])
 
-        vlan = vif.get('vlan')
-        if vlan is not None:
+        net = vif['network']
+        if net.get_meta('should_create_vlan', False):
+            vlan = net.get_meta('vlan'),
             iface = (CONF.vlan_interface or
                      vif['network'].get_meta('bridge_interface'))
             linux_net.LinuxBridgeInterfaceDriver.ensure_vlan_bridge(
