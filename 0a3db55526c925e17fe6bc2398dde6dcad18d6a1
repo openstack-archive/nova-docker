@@ -1,0 +1,8 @@
+Code-Review+2: Davanum Srinivas (dims) <davanum@gmail.com>
+Workflow+1: Davanum Srinivas (dims) <davanum@gmail.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Tue, 29 Mar 2016 13:19:33 +0000
+Reviewed-on: https://review.openstack.org/298697
+Project: openstack/nova-docker
+Branch: refs/heads/stable/mitaka
