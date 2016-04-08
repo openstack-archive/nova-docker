@@ -434,7 +434,7 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
     def test_get_memory_limit_from_sys_meta_in_object(self):
         instance = utils.get_test_instance(obj=True)
         limit = self.connection._get_memory_limit_bytes(instance)
-        self.assertEqual(2048 * units.Mi, limit)
+        self.assertEqual(512 * units.Mi, limit)
 
     def test_get_memory_limit_from_sys_meta_in_db_instance(self):
         instance = utils.get_test_instance(obj=False)
