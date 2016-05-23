@@ -552,7 +552,7 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
     def test_get_dns_entries(self):
         driver = docker_driver.DockerDriver(object)
         network_info = utils.get_test_network_info()
-        self.assertEqual(['0.0.0.0', '0.0.0.0'],
+        self.assertEqual(['192.168.122.1', '192.168.122.2'],
                          driver._extract_dns_entries(network_info))
 
     @mock.patch.object(os.path, 'exists', return_value=True)

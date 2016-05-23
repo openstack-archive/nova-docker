@@ -56,7 +56,7 @@ from novadocker.virt.docker import network
 from novadocker.virt import hostutils
 
 CONF = cfg.CONF
-CONF.import_opt('my_ip', 'nova.netconf')
+CONF.import_opt('my_ip', 'nova.conf.netconf')
 CONF.import_opt('instances_path', 'nova.compute.manager')
 
 docker_opts = [
@@ -113,6 +113,8 @@ class DockerDriver(driver.ComputeDriver):
         self.vif_driver = vif_class()
         self.firewall_driver = firewall.load_driver(
             default='nova.virt.firewall.NoopFirewallDriver')
+        # NOTE(zhangguoqing): For passing the nova unit tests
+        self.active_migrations = {}
 
     @property
     def docker(self):
