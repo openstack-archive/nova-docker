@@ -113,6 +113,8 @@ class DockerDriver(driver.ComputeDriver):
         self.vif_driver = vif_class()
         self.firewall_driver = firewall.load_driver(
             default='nova.virt.firewall.NoopFirewallDriver')
+        # NOTE(zhangguoqing): For passing the nova unit tests
+        self.active_migrations = {}
 
     @property
     def docker(self):
