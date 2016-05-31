@@ -1,0 +1,4 @@
+python-keystoneclient
+python-glanceclient
+python-novaclient
+paramiko
