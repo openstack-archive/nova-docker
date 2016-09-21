@@ -536,11 +536,12 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
         image_info = utils.get_test_image_object(None, instance_ref)
         image_info.container_format = 'docker'
         image_info.name = 'MiXeDcAsE-image'
-        repo = self.connection._get_image_name(self.context,
-                                               instance_ref, image_info)
+        image_info.id = 'fake_id'
+        repo = self.connection._get_image_id(self.context,
+                                             instance_ref, image_info)
 
         # image_name = repo.split("/")[1]
-        self.assertEqual(image_info.name, repo)
+        self.assertEqual(image_info.id, repo)
 
     def test_get_host_uptime_returns_exec_result(self):
         result = '4294967296'
@@ -568,8 +569,8 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
                 image = self.connection._pull_missing_image(self.context,
                                                             image_info,
                                                             instance_ref)
-                f.assert_called_once_with('fake_name', '/fake_dir/fake_id')
-                i.assert_called_once_with('fake_name')
+                f.assert_called_once_with('fake_id', '/fake_dir/fake_id')
+                i.assert_called_once_with('fake_id')
                 self.assertEqual('fake_image', image)
 
     def test_find_container_by_uuid(self):

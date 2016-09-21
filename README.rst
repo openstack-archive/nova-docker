@@ -71,11 +71,9 @@ Once done you can go back to a user::
 
   source openrc demo
 
-The name of the image in Glance should be explicitly set to the same name
-as the image as it is known to Docker. In the example above, an image has
-been tagged in Docker as 'busybox'. Matching this is the '--name busybox'
-argument to *glance image-create*. If these names do not align, the image
-will not be bootable.
+Previosly, the name of the image in Glance should be explicitly set to the same
+name as the image as it is known to Docker. However, this is not true anymore,
+as now booting images is based on the image's ID.
 
 **Note:** There should be a long lived process running in the docker image,
 otherwise the instance will not be able to spawn successfully. This can be
