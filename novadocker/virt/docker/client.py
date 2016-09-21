@@ -16,6 +16,8 @@
 
 import functools
 import inspect
+import json
+import tarfile
 
 from oslo_config import cfg
 import six
@@ -91,9 +93,14 @@ class DockerHTTPClient(client.Client):
         res = self._post(url)
         return res.status_code == 204
 
-    def load_repository_file(self, name, path):
-        with open(path, 'rb') as fh:
+    def load_repository_file(self, tag, path):
+        tar = tarfile.TarFile(path)
+        manifest = json.load(tar.extractfile("manifest.json"))
+        tar.close()
+        sha = manifest[0]["Config"].split(".")[0]
+        with open(path) as fh:
             self.load_image(fh)
+        self.tag(sha, tag)
 
     def get_container_logs(self, container_id):
         return self.attach(container_id, 1, 1, 0, 1)
