@@ -373,17 +373,17 @@ class DockerDriver(driver.ComputeDriver):
             return int(system_meta.get(
                 'instance_type_memory_mb', 0)) * units.Mi
 
-    def _get_image_name(self, context, instance, image):
+    def _get_image_id(self, context, instance, image):
         fmt = image.container_format
         if fmt != 'docker':
             msg = _('Image container format not supported ({0})')
             raise exception.InstanceDeployFailure(msg.format(fmt),
-                                                  instance_id=instance['name'])
-        return image.name
+                                                  instance_id=instance.id)
+        return image.id
 
     def _pull_missing_image(self, context, image_meta, instance):
-        msg = 'Image name "%s" does not exist, fetching it...'
-        LOG.debug(msg, image_meta.name)
+        msg = 'Image "%s" does not exist, fetching it...'
+        LOG.debug(msg, image_meta.id)
 
         shared_directory = CONF.docker.shared_directory
         if (shared_directory and
@@ -394,43 +394,38 @@ class DockerDriver(driver.ComputeDriver):
                 LOG.debug('Loading repository file into docker %s',
                           self._encode_utf8(image_meta.name))
                 self.docker.load_repository_file(
-                    self._encode_utf8(image_meta.name),
+                    image_meta.id,
                     os.path.join(shared_directory, image_meta.id))
-                return self.docker.inspect_image(
-                    self._encode_utf8(image_meta.name))
             except Exception as e:
                 # If failed to load image from shared_directory, continue
                 # to download the image from glance then load.
                 LOG.warning(_('Cannot load repository file from shared '
                               'directory: %s'),
                             e, instance=instance, exc_info=True)
+        else:
+            # TODO(imain): It would be nice to do this with file like object
+            # passing but that seems a bit complex right now.
+            snapshot_directory = CONF.docker.snapshots_directory
+            fileutils.ensure_tree(snapshot_directory)
+            with utils.tempdir(dir=snapshot_directory) as tmpdir:
+                try:
+                    out_path = os.path.join(tmpdir, uuid.uuid4().hex)
 
-        # TODO(imain): It would be nice to do this with file like object
-        # passing but that seems a bit complex right now.
-        snapshot_directory = CONF.docker.snapshots_directory
-        fileutils.ensure_tree(snapshot_directory)
-        with utils.tempdir(dir=snapshot_directory) as tmpdir:
-            try:
-                out_path = os.path.join(tmpdir, uuid.uuid4().hex)
-
-                LOG.debug('Fetching image with id %s from glance',
-                          image_meta.id)
-                images.fetch(context, image_meta.id, out_path,
-                             instance['user_id'], instance['project_id'])
-                LOG.debug('Loading repository file into docker %s',
-                          self._encode_utf8(image_meta.name))
-                self.docker.load_repository_file(
-                    self._encode_utf8(image_meta.name),
-                    out_path
-                )
-                return self.docker.inspect_image(
-                    self._encode_utf8(image_meta.name))
-            except Exception as e:
-                LOG.warning(_('Cannot load repository file: %s'),
-                            e, instance=instance, exc_info=True)
-                msg = _('Cannot load repository file: {0}')
-                raise exception.NovaException(msg.format(e),
-                                              instance_id=image_meta.name)
+                    LOG.debug('Fetching image with id %s from glance',
+                              image_meta.id)
+                    images.fetch(context, image_meta.id, out_path,
+                                 instance['user_id'], instance['project_id'])
+                    LOG.debug('Loading repository file into docker %s',
+                              image_meta.id)
+                    self.docker.load_repository_file(image_meta.id,
+                                                     out_path)
+                except Exception as e:
+                    LOG.warning(_('Cannot load repository file: %s'),
+                                e, instance=instance, exc_info=True)
+                    msg = _('Cannot load repository file: {0}')
+                    raise exception.NovaException(msg.format(e),
+                                                  instance_id=image_meta.id)
+        return self.docker.inspect_image(image_meta.id)
 
     def _extract_dns_entries(self, network_info):
         dns = []
@@ -511,7 +506,7 @@ class DockerDriver(driver.ComputeDriver):
     def spawn(self, context, instance, image_meta, injected_files,
               admin_password, network_info=None, block_device_info=None,
               flavor=None):
-        image_name = self._get_image_name(context, instance, image_meta)
+        image_id = self._get_image_id(context, instance, image_meta)
         args = {
             'hostname': instance['name'],
             'mem_limit': self._get_memory_limit_bytes(instance),
@@ -520,7 +515,7 @@ class DockerDriver(driver.ComputeDriver):
         }
 
         try:
-            image = self.docker.inspect_image(self._encode_utf8(image_name))
+            image = self.docker.inspect_image(self._encode_utf8(image_id))
         except errors.APIError:
             image = None
 
@@ -534,7 +529,7 @@ class DockerDriver(driver.ComputeDriver):
         if 'metadata' in instance:
             args['environment'] = nova_utils.instance_meta(instance)
 
-        container_id = self._create_container(instance, image_name, args)
+        container_id = self._create_container(instance, image_id, args)
         if not container_id:
             raise exception.InstanceDeployFailure(
                 _('Cannot create container'),
