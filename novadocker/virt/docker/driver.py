@@ -56,7 +56,6 @@ from novadocker.virt.docker import network
 from novadocker.virt import hostutils
 
 CONF = cfg.CONF
-CONF.import_opt('my_ip', 'nova.conf.netconf')
 CONF.import_opt('instances_path', 'nova.compute.manager')
 
 docker_opts = [

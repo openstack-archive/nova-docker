@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 import mock
+import os
 import sys
 
 
@@ -114,7 +115,6 @@ class DockerOpenContrailVIFDriverTestCase(test.TestCase):
         gateway = '1.1.1.254'
         fixed_ip = '1.1.1.42/24'
         calls = [
-            mock.call('mkdir', '-p', '/var/run/netns', run_as_root=True),
             mock.call('ln', '-sf', '/proc/7890/ns/net',
                       '/var/run/netns/my_vm', run_as_root=True),
             mock.call('ip', 'netns', 'exec', 'my_vm', 'ip', 'link',
@@ -134,6 +134,9 @@ class DockerOpenContrailVIFDriverTestCase(test.TestCase):
             mock.call('ip', 'netns', 'exec', 'my_vm', 'ip', 'link',
                       'set', if_remote_name, 'up', run_as_root=True)
         ]
+        if not os.path.exists('/var/run/netns'):
+            calls.insert(0, mock.call('mkdir', '-p', '/var/run/netns',
+                                      run_as_root=True))
         network_info = [network_model.VIF(id=vid, address=address,
                                           network=network_model.Network(
                                               id='virtual-network-1',
