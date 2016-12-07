@@ -17,7 +17,7 @@ import mock
 
 from nova.network import model as network_model
 from nova import test
-from novadocker.virt.docker import driver as docker_driver
+from nova.virt.docker import driver as docker_driver
 from novadocker.virt.docker import vifs
 
 
