@@ -18,7 +18,7 @@ import mock
 from nova.network import model as network_model
 from nova import test
 from nova.virt import firewall
-from novadocker.virt.docker import driver
+from nova.virt.docker import driver
 
 
 class DockerFirewallDriverTestCase(test.TestCase):
