@@ -32,9 +32,9 @@ import nova.tests.unit.image.fake
 from nova.tests.unit import matchers
 from nova.tests.unit import utils
 from nova.tests.unit.virt import test_virt_drivers
+import nova.virt.docker
+from nova.virt.docker import driver as docker_driver
 from novadocker.tests.virt.docker import mock_client
-import novadocker.virt.docker
-from novadocker.virt.docker import driver as docker_driver
 from novadocker.virt.docker import hostinfo
 from novadocker.virt.docker import network
 
@@ -42,26 +42,26 @@ from novadocker.virt.docker import network
 class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
                            test.TestCase):
 
-    driver_module = 'novadocker.virt.docker.DockerDriver'
+    driver_module = 'nova.virt.docker.driver.DockerDriver'
 
     def setUp(self):
         super(DockerDriverTestCase, self).setUp()
 
         self.mock_client = mock_client.MockClient()
-        self.stubs.Set(novadocker.virt.docker.driver.DockerDriver, 'docker',
+        self.stubs.Set(nova.virt.docker.driver.DockerDriver, 'docker',
                        self.mock_client)
 
         def fake_plug_vifs(self, instance, network_info):
             return
 
-        self.stubs.Set(novadocker.virt.docker.driver.DockerDriver,
+        self.stubs.Set(nova.virt.docker.driver.DockerDriver,
                        'plug_vifs',
                        fake_plug_vifs)
 
         def fake_attach_vifs(self, instance, network_info):
             return
 
-        self.stubs.Set(novadocker.virt.docker.driver.DockerDriver,
+        self.stubs.Set(nova.virt.docker.driver.DockerDriver,
                        '_attach_vifs',
                        fake_attach_vifs)
 
@@ -75,7 +75,7 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
 
         self.connection.init_host(None)
         self.fixture = self.useFixture(
-            config_fixture.Config(novadocker.virt.docker.driver.CONF))
+            config_fixture.Config(nova.virt.docker.driver.CONF))
 
     def test_live_migration(self):
         self.skipTest('Live migration is not implemented.')
@@ -190,7 +190,7 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
         virtapi = manager.ComputeVirtAPI(mock.MagicMock())
         prepare = virtapi._compute.instance_events.prepare_for_instance_event
         prepare.side_effect = fake_prepare
-        drvr = novadocker.virt.docker.driver.DockerDriver(virtapi)
+        drvr = nova.virt.docker.driver.DockerDriver(virtapi)
 
         instance_href = utils.get_test_instance()
         container_id = self.connection._find_container_by_uuid(
@@ -300,7 +300,7 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
                                   network_info=network_info)
             self.assertIsNone(mc.call_args[1].get('command'))
 
-    @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
+    @mock.patch.object(nova.virt.docker.driver.DockerDriver,
                        '_inject_key', return_value='/tmp/.ssh')
     def test_create_container_inject_key(self, mock_inject_key):
         self.fixture.config(inject_key=True, group='docker')
@@ -361,7 +361,7 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
         container_info = self.connection.docker.inspect_container(container_id)
         self.assertEqual(vcpus * 1024, container_info['Config']['CpuShares'])
 
-    @mock.patch('novadocker.virt.docker.driver.DockerDriver.plug_vifs',
+    @mock.patch('nova.virt.docker.driver.DockerDriver.plug_vifs',
                 side_effect=Exception)
     def test_create_container_net_setup_fails(self, mock_plug_vifs):
         self.assertRaises(exception.InstanceDeployFailure,
@@ -378,9 +378,9 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
                           self.test_create_container,
                           image_info, instance_href)
 
-    @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
+    @mock.patch.object(nova.virt.docker.driver.DockerDriver,
                        'cleanup')
-    @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
+    @mock.patch.object(nova.virt.docker.driver.DockerDriver,
                        '_find_container_by_uuid',
                        return_value={'id': 'fake_id'})
     def test_destroy_container(self, byuuid_mock, cleanup_mock):
@@ -390,9 +390,9 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
                                         'fake_networkinfo', None, True)
 
     @mock.patch.object(network, 'teardown_network')
-    @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
+    @mock.patch.object(nova.virt.docker.driver.DockerDriver,
                        'unplug_vifs')
-    @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
+    @mock.patch.object(nova.virt.docker.driver.DockerDriver,
                        '_find_container_by_uuid',
                        return_value={'id': 'fake_id'})
     def test_cleanup_container(self, byuuid_mock, unplug_mock, teardown_mock):
@@ -401,9 +401,9 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
         byuuid_mock.assert_called_with(instance['uuid'])
         teardown_mock.assert_called_with('fake_id')
 
-    @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
+    @mock.patch.object(nova.virt.docker.driver.DockerDriver,
                        'unplug_vifs')
-    @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
+    @mock.patch.object(nova.virt.docker.driver.DockerDriver,
                        '_find_container_by_uuid',
                        return_value={})
     def test_cleanup_container_notfound(self, byuuid_mock, unplug_mock):
@@ -472,7 +472,7 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
             self.assertFalse(instances)
 
     def test_find_container_pid(self):
-        driver = novadocker.virt.docker.driver.DockerDriver(None)
+        driver = nova.virt.docker.driver.DockerDriver(None)
         with mock.patch.object(driver.docker,
                                "inspect_container") as inspect_container:
             inspect_container.return_value = {'State': {'Pid': '12345'}}
@@ -480,14 +480,14 @@ class DockerDriverTestCase(test_virt_drivers._VirtDriverTestCase,
             self.assertEqual(pid, '12345')
 
     def test_get_console_output_with_no_container(self):
-        driver = novadocker.virt.docker.driver.DockerDriver(None)
+        driver = nova.virt.docker.driver.DockerDriver(None)
         with mock.patch.object(driver,
                                "_get_container_id") as get_container_id:
             get_container_id.return_value = None
             logs = driver.get_console_output(None, None)
             self.assertEqual('', logs)
 
-    @mock.patch.object(novadocker.virt.docker.driver.DockerDriver,
+    @mock.patch.object(nova.virt.docker.driver.DockerDriver,
                        '_find_container_by_uuid',
                        return_value={'id': 'fake_id'})
     def test_snapshot(self, byuuid_mock):
