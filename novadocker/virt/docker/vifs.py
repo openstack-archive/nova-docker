@@ -35,7 +35,6 @@ CONF = cfg.CONF
 CONF.import_opt('my_ip', 'nova.conf.netconf')
 CONF.import_opt('vlan_interface', 'nova.manager')
 CONF.import_opt('flat_interface', 'nova.manager')
-CONF.import_opt('network_device_mtu', 'nova.objects.network')
 
 LOG = logging.getLogger(__name__)
 
@@ -437,9 +436,7 @@ class DockerGenericVIFDriver(object):
 
             # Setup MTU on if_remote_name is required if it is a non
             # default value
-            mtu = CONF.network_device_mtu
-            if vif.get('mtu') is not None:
-                mtu = vif.get('mtu')
+            mtu = vif.get('mtu')
             if mtu is not None:
                 utils.execute('ip', 'netns', 'exec', container_id, 'ip',
                               'link', 'set', if_remote_name, 'mtu', mtu,
