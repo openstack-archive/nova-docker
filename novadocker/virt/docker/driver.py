@@ -473,8 +473,7 @@ class DockerDriver(driver.ComputeDriver):
     def _start_container(self, container_id, instance, network_info=None):
         binds = self._get_key_binds(container_id, instance)
         dns = self._extract_dns_entries(network_info)
-        self.docker.start(container_id, binds=binds, dns=dns,
-                          privileged=CONF.docker.privileged)
+        self.docker.start(container_id, binds=binds, dns=dns)
 
         if not network_info:
             return
@@ -517,6 +516,7 @@ class DockerDriver(driver.ComputeDriver):
             'mem_limit': self._get_memory_limit_bytes(instance),
             'cpu_shares': self._get_cpu_shares(instance),
             'network_disabled': True,
+            'privileged': CONF.docker.privileged,
         }
 
         try:
