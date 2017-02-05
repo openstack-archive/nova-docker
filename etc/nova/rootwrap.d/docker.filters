@@ -4,3 +4,6 @@
 [Filters]
 # nova/virt/docker/driver.py: 'ln', '-sf', '/var/run/netns/.*'
 ln: CommandFilter, /bin/ln, root
+
+# novadocker/virt/docker/opencontrail.py: 'vrouter-port-control', ...
+vrouter-port-control: CommandFilter, vrouter-port-control, root
